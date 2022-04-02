@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title></title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- built files will be auto injected -->
+  <script>
+    let selectMask = {
+      _maskDOM: null,
+      _tipsDOM: null,
+      initMask: function () {
+        if (this._maskDOM !== null || this._tipsDOM !== null) {
+          return false;
+        }
+        this._maskDOM = this._templateMask();
+        this._tipsDOM = this._templateTips();
+        // document.getElementById('iframeBox').appendChild(this._maskDOM);
+        // document.getElementById('iframeBox').appendChild(this._tipsDOM);
+        document.body.appendChild(this._maskDOM);
+        document.body.appendChild(this._tipsDOM);
+        return true;
+      },
+      _templateTips: function () {
+        let tips = document.createElement('div');
+        tips.innerHTML = '<span style="float: left;color: #871678;"></span><span style="float: left;color: #3B3DB4;"></span>';
+        return tips;
+      },
+      _templateMask: function () {
+        let mask = document.createElement('div');
+        mask.setAttribute('id', 'iMask');
+        return mask;
+      },
+      _initStyle: function (w, h, x, y, color, name, path) {
+        let style = {
+          position: 'absolute',
+          width: w + 'px',
+          height: h + 'px',
+          left: x + 0 + 'px',
+          top: y + 0 + 'px',
+          background: color,
+          'pointer-events': 'none'
+        };
+        let styleStr = '';
+        for (let k in style) {
+          styleStr += k + ':' + style[k] + ';';
+        }
+        this._maskDOM.setAttribute('style', styleStr);
+        this._initTipsStyle(x, y, name, path);
+      },
+      _initTipsStyle: function (x, y, name, path) {
+        const HEIGHT = 30;
+        if (HEIGHT > this._maskDOM.offsetTop) {
+          y += this._maskDOM.offsetHeight + 8;
+          this._tipsDOM.className = 'tips-content tips-content-up';
+        } else {
+          y = y - HEIGHT + 4;
+          this._tipsDOM.className = 'tips-content tips-content-down';
+        }
+        let style = {
+          'position': 'absolute',
+          'left': x + 2 + 'px',
+          'top': y + 'px',
+          'height': '26px',
+          'line-height': '26px',
+          'padding': '0 10px',
+          'background-color': '#fff',
+          'border-radius': '3px',
+          'font-size': '14px',
+          'font-weight': '700',
+          'box-sizing': 'border-box',
+          'box-shadow': '0 1px 10px #8F8F8F',
+          '-webkit-box-shadow': '0 1px 10px #8F8F8F',
+          '-moz-box-shadow': '0 1px 10px #8F8F8F',
+          'z-index': '9999999'
+        };
+        let styleStr = '';
+        for (let k in style) {
+          styleStr += k + ':' + style[k] + ';';
+        }
+        this._tipsDOM.setAttribute('style', styleStr);
+        let spanArr = this._tipsDOM.querySelectorAll('span');
+        spanArr[0].innerHTML = name;
+        spanArr[1].innerHTML = path;
+      },
+      show: function (w, h, x, y, color, name, path) {
+        this._initStyle(w, h, x, y, color, name, path);
+      },
+      remove: function () {
+        this._maskDOM.removeAttribute('style');
+        this._tipsDOM.removeAttribute('style');
+        this._tipsDOM.className = '';
+        let spanArr = this._tipsDOM.querySelectorAll('span');
+        spanArr[0].innerHTML = '';
+        spanArr[1].innerHTML = '';
+      }
+    };
+    selectMask.initMask();
+    window.selectMask = selectMask;
+  </script>
+  </body>
+</html>
