@@ -1,0 +1,111 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">异步查询</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="查询类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-select class="select-in-afi"
+                 v-model="currentSelect.queryType"
+                 placeholder="请选择">
+        <el-option v-for="item in valueName1"
+                   :key="item.name"
+                   :label="item.name"
+                   :value="item.name">
+        </el-option>
+      </el-select>
+    </a-form-item>
+    <a-form-item label="超时"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               type="number"
+               v-model.number="currentSelect.timeout"
+               @change="timeoutChange" />
+    </a-form-item>
+    <a-form-item label="是否等待完成"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.waitEnd"
+                 active-color="#0487fe"
+                 inactive-color="#ccd0d3"
+                 active-text="是否等待完成"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <a-form-item label="输出变量名"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               :value="currentSelect.outputVarName"
+               @change="outputVarNameChange" />
+    </a-form-item>
+  </a-form>
+</template>
+<script>
+export default {
+  name: 'asyncQuery',
+  data () {
+    return {
+      valueName: [
+        {
+          name: '等待',
+          value: 1
+        },
+        {
+          name: '不等待',
+          value: 0
+        }
+      ],
+      valueName1: [
+        {
+          name: 'download'
+        },
+        {
+          name: 'all'
+        }
+      ]
+    }
+  },
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    timeoutChange (e) {
+      this.nodeAttrChange({ attr: 'timeout', payload: Number(e.target.value) })
+    },
+    waitEndChange (e) {
+      this.nodeAttrChange({ attr: 'waitEnd', payload: e.target.value })
+    },
+    outputVarNameChange (e) {
+      this.nodeAttrChange({ attr: 'outputVarName', payload: e.target.value })
+    },
+    getPath () {
+      this.processGetPath(this.currentSelect.id, this.currentSelect)
+    }
+  }
+}
+</script>

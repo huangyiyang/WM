@@ -1,0 +1,74 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">截屏</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="变量名"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.varName"
+               @change="varNamePathChange" />
+    </a-form-item>
+    <a-form-item label="变量值"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.varValue"
+               @change="varValueChange" />
+    </a-form-item>
+
+    <a-form-item label="克隆"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.isClone"
+                 active-text="是否需要克隆"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+  </a-form>
+</template>
+
+<script>
+export default {
+  name: 'varAssignment',
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    varNamePathChange (e) {
+      this.nodeAttrChange({ attr: 'varName', payload: e.target.value })
+    },
+    varValueChange (e) {
+      this.nodeAttrChange({ attr: 'varValue', payload: e.target.value })
+    },
+    getPath () {
+      this.processGetPath(this.currentSelect.id, this.currentSelect)
+    }
+  }
+}
+</script>

@@ -1,0 +1,144 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">下载</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="点击位置"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.clickPath"
+               @change="clickPathChange" />
+      <a-icon style="width: 20%;fontSize:16px;"
+              type="fullscreen-exit"
+              @click="getPath('clickPath')" />
+    </a-form-item>
+    <a-form-item label="是否异步"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.isAsync"
+                 active-text="是否异步"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <a-form-item label="超时"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               type="number"
+               v-model.number="currentSelect.timeout"
+               @change="timeoutChange" />
+    </a-form-item>
+    <a-form-item label="下载存放路径"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               :value="currentSelect.relativePath"
+               @change="relativePathChange" />
+    </a-form-item>
+    <a-form-item label="回调标识"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               :value="currentSelect.token"
+               @change="tokenChange" />
+    </a-form-item>
+    <a-form-item label="文件上传路径"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               :value="currentSelect.uploadUrl"
+               @change="uploadUrlChange" />
+    </a-form-item>
+    <a-form-item label="输出变量"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               :value="currentSelect.outputVarName"
+               @change="outputVarNameChange" />
+    </a-form-item>
+    <a-form-item label="URL下载"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.fromUrl"
+                 active-text="是否URL下载"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="下载地址"
+                   v-if="currentSelect.fromUrl"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <el-input placeholder=""
+                  v-model.number="currentSelect.downloadUrl"
+                  @change="downloadUrlChange" />
+      </a-form-item>
+    </transition>
+  </a-form>
+</template>
+<script>
+export default {
+  name: 'download',
+  data () {
+    return {
+    }
+  },
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    clickPathChange (e) {
+      console.log(e.target.value)
+      this.nodeAttrChange({ attr: 'clickPath', payload: e.target.value })
+    },
+    timeoutChange (e) {
+      this.nodeAttrChange({ attr: 'timeout', payload: Number(e.target.value) })
+    },
+    relativePathChange (e) {
+      this.nodeAttrChange({ attr: 'relativePath', payload: e.target.value })
+    },
+    tokenChange (e) {
+      this.nodeAttrChange({ attr: 'token', payload: e.target.value })
+    },
+    uploadUrlChange (e) {
+      this.nodeAttrChange({ attr: 'uploadUrl', payload: e.target.value })
+    },
+    //outputVarNameChange
+    outputVarNameChange (e) {
+      this.nodeAttrChange({ attr: 'outputVarName', payload: e.target.value })
+    },
+    downloadUrleChange (e) {
+      // 验证输入数字 v-model.number
+      this.nodeAttrChange({ attr: 'downloadUrl', payload: e.target.value })
+    },
+    getPath (attr) {
+      this.processGetPath(this.currentSelect.id, this.currentSelect, attr)
+    }
+  }
+}
+</script>

@@ -1,0 +1,124 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">子流程</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="输入"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="@last"
+               :value="currentSelect.inputVarName"
+               @change="inputVarNameChange" />
+    </a-form-item>
+    <a-form-item label="输出"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="输出参数"
+               :value="currentSelect.outputVarName"
+               @change="outputVarNameChange" />
+    </a-form-item>
+    <a-form-item label="地址参数"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入地址参数变量名"
+               :value="currentSelect.urlVarName"
+               @change="paramUrlChange" />
+    </a-form-item>
+    <a-form-item label="选择子流程"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-select class="select-in-afi"
+                 v-model="currentSelect.subProcessId"
+                 placeholder="请选择">
+        <el-option v-for="item in processList"
+                   :key="item.value"
+                   :label="item.name"
+                   :value="item.value">
+        </el-option>
+      </el-select>
+    </a-form-item>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="编辑"
+                   v-if="currentSelect.subProcessId"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <el-button type="primary"
+                   size="mini"
+                   icon="el-icon-edit"
+                   @click="edit(currentSelect.subProcessId)"></el-button>
+      </a-form-item>
+    </transition>
+    <a-form-item label="关联打开"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.assignToLastTab"
+                 active-color="#0487fe"
+                 inactive-color="#ccd0d3"
+                 active-text="是否关联最后一次打开"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+  </a-form>
+</template>
+<script>
+export default {
+  name: 'subprocess',
+  data () {
+    return {
+      processList: [],
+      subProcessId: ''
+    }
+  },
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange'],
+  methods: {
+    edit (id) {
+      this.$router.push({ path: '/project/process', query: { id: id } });
+    },
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    inputVarNameChange (e) {
+      this.nodeAttrChange({ attr: 'inputVarName', payload: e.target.value })
+    },
+    outputVarNameChange (e) {
+      this.nodeAttrChange({ attr: 'outputVarName', payload: e.target.value })
+    },
+    paramUrlChange (e) {
+      this.nodeAttrChange({ attr: 'urlVarName', payload: e.target.value })
+    },
+    /* @method 下拉数据 */
+    interfaceSelect () {
+      this.$axios.post('/process/list', '', s => {
+        this.processList = s.data.map(process => {
+          let { processName, id } = process;
+          return Object.assign(process, { value: id, name: processName })
+        });
+      });
+    }
+  },
+  mounted () {
+    this.interfaceSelect();
+  }
+}
+</script>

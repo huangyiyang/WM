@@ -1,0 +1,154 @@
+.user {
+  @include flex;
+  @include flex-direction;
+
+  .el-input {
+
+    &__inner {
+      @include height($userInput);
+    }
+
+    &__icon {
+      line-height: $userInput;
+    }
+  }
+
+  .project-info {
+    padding: $rightMargin;
+    box-sizing: border-box;
+  }
+
+  &-info {
+    margin: 0 $globalMargin * 2;
+    display: flex;
+
+    &_left {
+      flex: 1;
+    }
+
+    &_right {
+      width: $userInfoWidth;
+    }
+
+    &-item {
+      display: flex;
+    }
+
+    &-base {
+      display: flex;
+      align-items: center;
+
+      .base-info {
+        margin-left: 22px;
+
+        .el-select {
+          width: 100%;
+        }
+
+        .el-form-item {
+          display: flex;
+
+          label {
+            white-space: nowrap;
+          }
+
+          &__content {
+            width: 100%;
+          }
+        }
+      }
+
+      .base-description {
+        flex: 1;
+        margin-left: 22px;
+      }
+
+      &>.el-form-item {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+    }
+
+    &-logo {
+      @include widthAndHeight(130px);
+      background-color: #f7f7f7;
+      box-shadow: 0 0 4px 0 rgba(180, 183, 188, 0.47);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      img {
+        @include widthAndHeight(100%);
+      }
+
+      .el-upload {
+        @include widthAndHeight(100%);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .home-icon {
+        font-size: 80px;
+      }
+    }
+
+    &-popover {
+
+      .beforehand-icon {
+        font-size: 60px;
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: $globalMargin / 2;
+        width: (70px + $globalMargin) * 5;
+
+        &>li {
+          @include widthAndHeight(70px);
+          margin: 0 $globalMargin / 2;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 5px;
+
+          &:hover {
+            background: #f5f7fa;
+          }
+        }
+      }
+    }
+
+    &-table {
+      .el-form-item__content {
+        text-align: right;
+
+        button {
+          margin-bottom: $globalMargin / 2;
+        }
+      }
+    }
+
+    &-submit {
+      margin-top: $globalMargin;
+
+      .el-form-item__content {
+        text-align: center;
+      }
+    }
+
+    .el-table th {
+      padding: 0;
+    }
+
+    .el-textarea {
+      border-radius: 4px;
+
+      pre {
+        min-height: 100px;
+      }
+    }
+  }
+}

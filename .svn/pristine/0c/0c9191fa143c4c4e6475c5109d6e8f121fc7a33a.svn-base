@@ -1,0 +1,235 @@
+<template>
+  <el-dialog :title="`应用 - ${applicationOption.title}`"
+             width="3.5rem"
+             custom-class="global-dialog"
+             :visible="dialogVisible"
+             @open="dialogOpen"
+             @close="dialogClose"
+             :close-on-click-modal="false">
+    <div class="application-detail"
+         v-if="applicationOption.type === 3">
+      <p class="application-detail-title">{{ detailOption.title }}</p>
+      <p class="application-detail-text">状态：{{ detailOption.status | statusFilter($store.state.taskStatus) }}</p>
+      <p class="application-detail-text">执行数：{{ detailOption.finish }}/{{ detailOption.total }}</p>
+      <p class="application-detail-text">并发数：{{ detailOption.concurrency }}</p>
+      <p class="application-detail-text">已执行时间：{{ detailOption.runTime | runTimeFilter }}</p>
+    </div>
+    <div class="application-detail"
+         v-else>
+      <p class="application-detail-title">{{ detailOption.processName }}</p>
+      <p class="application-detail-text">状态：{{ detailOption.status | statusFilter($store.state.loginStatus) }}</p>
+    </div>
+    <div slot="footer"
+         class="dialog-footer center">
+      <template v-if="applicationOption.type === 3">
+        <el-button @click="Run(detailOption)"
+                   type="success"
+                   v-if="detailOption.status === 1">运行</el-button>
+        <el-button @click="rerunSubmit(detailOption)"
+                   type="success"
+                   v-if="detailOption.status === 4">重新运行</el-button>
+        <el-button @click="End(detailOption)"
+                   type="warning"
+                   v-if="detailOption.status === 2">结束</el-button>
+        <el-button @click="Import(detailOption)"
+                   type="primary"
+                   v-if="detailOption.status !== 2">导入</el-button>
+        <el-button @click="Export(detailOption)"
+                   type="primary"
+                   v-if="detailOption.status === 4">导出</el-button>
+      </template>
+      <template v-else>
+        <el-button @click="login(detailOption)"
+                   type="success"
+                   v-if="detailOption.status === 1">登录</el-button>
+      </template>
+    </div>
+    <el-dialog title="导入文件"
+               :modal="false"
+               :visible.sync="dialogVisibleup"
+               width="70%"
+               top="35%"
+               :before-close="handleClose">
+      <input type="file"
+             style="
+    width: 100%;"
+             ref="fileInt"
+             @change="changeHandle">
+    </el-dialog>
+  </el-dialog>
+
+</template>
+
+<script>
+export default {
+  name: 'ApplicationDetail',
+  props: {
+    applicationOption: {
+      type: Object,
+      default () {
+        return {}
+      }
+    }
+  },
+  data () {
+    return {
+      detailOption: {},
+      fileToId: '',
+      dialogVisibleup: false,
+      rerunVisible: false,
+      rerunId: 0
+    }
+  },
+  computed: {
+    dialogVisible () {
+      return this.$store.getters.applicationDetailVisible;
+    }
+  },
+  beforeDestroy () {
+    this.runTimeEnd();
+  },
+  filters: {
+    statusFilter (val, dictionary) {
+      return val === undefined ? '' : dictionary.filter(item => item.value === val)[0].label;
+    },
+    runTimeFilter (val) {
+      let h, m, s;
+      if (val > 60) {
+        m = Math.floor(val / 60);
+        s = val % 60;
+      } else {
+        s = val;
+      }
+      if (m > 60) {
+        h = Math.floor(m / 60);
+        m = m % 60;
+      }
+      return `${h !== undefined ? h + '小时' : ''}${m !== undefined ? m + '分' : ''}${s !== undefined ? s + '秒' : ''}`;
+    }
+  },
+  methods: {
+    /* @method 定时刷新已执行时间 */
+    runTimeRefresh () {
+      this.runTimeEnd();
+      this.setRunTime = setInterval(() => {
+        this.detailRequest();
+      }, 15000);
+    },
+    /* @method 结束已执行时间定时刷新 */
+    runTimeEnd () {
+      clearTimeout(this.setRunTime);
+    },
+    /* @event 弹窗打开 */
+    dialogOpen () {
+      this.detailRequest();
+    },
+    /* @event 弹窗关闭 */
+    dialogClose () {
+      this.$store.commit('setApplicationDetail', false);
+    },
+    /* @method 获取详情 */
+    detailRequest () {
+      const data = new URLSearchParams();
+      data.append('id', this.applicationOption.dataId);
+      const url = this.applicationOption.type === 3 ? 'task' : 'process';
+      this.$axios.post(`/${url}/detail`, data, s => {
+        this.detailOption = s.data;
+        if (s.data.status === 2) {
+          this.runTimeRefresh();
+        } else {
+          this.runTimeEnd();
+        }
+        //this.runTimeRefresh()
+      });
+    },
+    handleClose (done) {
+      this.dialogVisibleup = false
+    },
+    /* @event 登录 */
+    login (item) {
+      console.log(item)
+      let paths = '/process/test?id=' + item.id;
+      this.$axios.get(paths, '', s => {
+        this.$message.success('开始登录！');
+        this.detailRequest();
+        this.dialogClose()
+      });
+    },
+    /* @event 开始/继续执行 */
+    Run (item) {
+      let data = new URLSearchParams();
+      data.append('id', item.id);
+      this.$axios.post('/task/run', data, s => {
+        this.$message.success('开始执行！');
+        this.detailRequest();
+      });
+    },
+    /* @event 终止执行 */
+    End (item) {
+      let data = new URLSearchParams();
+      data.append('id', item.id);
+      this.$axios.post('/task/cancel', data, s => {
+        this.$message.success('终止执行！');
+        this.detailRequest();
+        this.dialogClose()
+      });
+    },
+    /* @event 暂停执行 */
+    Suspend (item) {
+      let data = new URLSearchParams();
+      data.append('id', item.id);
+      this.$axios.post('/task/pause', data, s => {
+        this.$message.success('暂停执行！');
+        this.detailRequest();
+      });
+    },
+    /* @event 导入 */
+    Import (item) {
+      this.dialogVisibleup = true
+      this.fileToId = this.detailOption.id
+      console.log(this.detailOption.id)
+    },
+    changeHandle () {
+      const file = this.$refs.fileInt.files[0];
+      this.$refs.fileInt.value = ''
+      const data = new FormData();
+      data.append('file', file);
+      data.append('id', this.detailOption.id);
+      this.$axios.post('/task/import', data, res => {
+        this.$message.success(res.message);
+        this.dialogVisibleup = false
+        this.detailRequest();
+      });
+    },
+    /* @event 导出 */
+    Export (item) {
+      let elink = document.createElement('a');
+      elink.href = this.$axios.downUrl() + '/task/export?id=' + item.id + '&token=' + sessionStorage.getItem('token')
+      elink.click();
+    },
+    /* @event 重新运行 */
+    rerunSubmit (item) {
+      console.log(item)
+      let data = new URLSearchParams();
+      data.append('id', item.id);
+      this.$axios.post('/task/cancel', data, s => {
+        this.$axios.post('/task/run', data, s => {
+          this.$message.success('开始执行！');
+          //this.rerunVisible = false;
+          this.detailRequest();
+        });
+      });
+    }
+  }
+}
+</script>
+<style>
+.el-dialog__header {
+  padding: 0.2rem 0.2rem 0.1rem;
+  background-color: #73bfbf;
+  color: #fff !important;
+}
+.el-dialog__title {
+  color: #fff !important;
+}
+</style>

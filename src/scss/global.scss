@@ -1,0 +1,986 @@
+@import "./base/reset";
+@import "./base/function";
+@import "./base/mixin";
+@import "./base/value";
+@import "./base/color";
+@import "./base/base";
+@import "./base/animate";
+@import "./page/error";
+@import "./page/login"; // 登录
+@import "./page/index"; // 首页
+@import "./page/project"; // 项目
+@import "./page/topic"; // 项目专题看板
+@import "./page/home"; // 开放
+@import "./page/developer"; // 开发者
+@import "./page/user"; // 使用者
+@import "./page/mojing"; // 使用者
+@import "page/flowdesignerplugin"; // 流程编辑插件
+@import "page/dashbord"; // 综合看板界面
+
+/* public start */
+@include font-face("PingFangSCRegular","../static/font/PingFangSCRegular/PingFangSCRegular");
+@include font-face('iconfont', '../static/font/iconfont/iconfont');
+
+html{
+  font-size: 100Px;
+  @include widthAndHeight(100%);
+}
+
+body{
+  @include widthAndHeight(100%);
+  font-family: Microsoft YaHei, Arial, Helvetica, sans-serif;
+  font-size: $fontSize;
+  color: $fontColor;
+  margin: 0;
+  background-color: $globalBg;
+  overflow: hidden;
+}
+
+#app {
+  @include widthAndHeight(100%);
+}
+
+:not(pre) > code[class*="language-"],
+pre[class*="language-"] {
+  background: $globalBg;
+  border: 1px solid #DCDFE6;
+}
+
+.icon {
+  font-family: "iconfont" !important;
+  font-size: 14Px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  &-more:before {
+    content: "\e689";
+  }
+
+  &-fail:before {
+    content: "\e601";
+  }
+
+  &-all:before {
+    content: "\e643";
+  }
+
+  &-no:before {
+    content: "\e666";
+  }
+
+  &-code:before {
+    content: "\e668";
+  }
+
+  &-submit:before {
+    content: "\e72d";
+  }
+
+  &-gain:before {
+    content: "\e72e";
+  }
+
+  &-process:before {
+    content: "\e605";
+  }
+
+  &-task:before {
+    content: "\ec35";
+  }
+
+  &-resources:before {
+    content: "\e678";
+  }
+
+  &-auto_process:before {
+    content: "\e611";
+  }
+
+  &-wallet:before {
+    content: "\e602";
+  }
+
+  &-upload:before {
+    content: "\e6c4";
+  }
+
+  &-config:before {
+    content: "\e610";
+  }
+
+  &-rocket:before {
+    content: "\e600";
+  }
+
+  &-interface:before {
+    content: "\e64c";
+  }
+
+  &-diamond:before {
+    content: "\e72a";
+  }
+
+  &-professional:before {
+    content: "\e660";
+  }
+
+  &-call:before {
+    content: "\e621";
+  }
+
+  &-key:before {
+    content: "\e8ce";
+  }
+
+  &-computer:before {
+    content: "\e61c";
+  }
+
+  &-user:before {
+    content: "\e639";
+  }
+
+  &-record:before {
+    content: "\e642";
+  }
+}
+
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px $white inset !important;
+}
+
+/* 标签样式 */
+.tips-content.tips-content-down:after{
+  position: absolute;
+  content: "";
+  display: block;
+  bottom: -6px;
+  left: 8px;
+  width:0;
+  height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:6px solid #fff;
+}
+.tips-content.tips-content-up:after{
+  position: absolute;
+  content: "";
+  display: block;
+  top: -6px;
+  left: 8px;
+  width:0;
+  height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-bottom:6px solid #fff;
+}
+
+.image-error {
+  @include widthAndHeight(100%);
+  position: relative;
+
+  i {
+    @include center(all);
+    color: $gray;
+    font-size: 80px;
+  }
+}
+
+%status {
+  &>i {
+    display: inline-block;
+    @include widthAndHeight(16px);
+    @include radius(50%);
+    vertical-align: middle;
+  }
+}
+
+.normal {
+  @extend %status;
+
+  &>i {
+    background: $normal;
+  }
+}
+
+.abnormal {
+  @extend %status;
+
+  &>i {
+    background: $abnormal;
+  }
+}
+
+.unknown {
+  @extend %status;
+
+  &>i {
+    background: $yellow;
+  }
+}
+
+.stop {
+  @extend %status;
+
+  &>i {
+    background: $stop;
+  }
+}
+
+.tag-name {
+  color: $tagsColor;
+}
+
+.tag-id {
+  color: $idColor;
+}
+
+.tag-class {
+  color: $classColor;
+}
+
+.attribute-name {
+  color: $attributeName;
+}
+
+.attribute-value {
+  color:$attributeValue;
+}
+
+
+.custom-dialog {
+  width: px2rem(1000);
+  height: calc(100% - #{$globalMargin * 2});
+  margin: 0!important;
+  @include center(all);
+
+  .el-dialog__header {
+    position: relative;
+
+    &btn {
+      font-size: 20px;
+    }
+  }
+
+  .el-dialog__body {
+    padding: 10px 20px;
+    height: calc(100% - (54px + 60px));
+    @include box-sizing();
+  }
+}
+
+.select-path {
+  width: 1200Px;
+  height: calc(100% - #{$globalMargin * 2});
+  margin: 0;
+  @include center(all);
+  @include flex;
+  @include flex-direction;
+
+  .el-dialog__body {
+    padding: 0;
+  }
+
+  .el-dialog__footer {
+    @include box-flex();
+  }
+  .el-icon-refresh {
+    font-size: 20px;
+    vertical-align: middle;
+    color: $success;
+  }
+  .el-icon-loading{
+    font-size: 20px;
+    vertical-align: middle;
+    color: $primary;
+  }
+  &-body {
+    @include widthAndHeight(100%);
+    position: relative;
+    overflow: hidden;
+
+    .iframe-box {
+      @include widthAndHeight(100%);
+    }
+
+    iframe {
+      @include widthAndHeight(100%);
+    }
+
+    .iframe-mark {
+      position: absolute;
+      background: rgba(101, 177, 247, 0.5);
+      pointer-events: none;
+      z-index: 99;
+    }
+
+    .iframe-other {
+      position: absolute;
+      background: rgba(253, 220, 154, 0.5);
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .iframe-tips {
+      position: absolute;
+      @include radius(5px);
+      @include shadow(0 1px 10px #8F8F8F);
+      background: $white;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 9999;
+
+
+      &-option {
+        text-align: left;
+        line-height: 28px;
+        padding: 0 10px;
+
+        .el-checkbox__label {
+          max-width: 300px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        &.current {
+          background: rgba(101, 177, 247, 0.5);
+        }
+
+        &.other {
+          background: rgba(253, 220, 154, 0.5);
+        }
+      }
+    }
+
+  }
+}
+
+.enter-code {
+  @include center(all);
+
+  .el-dialog__body {
+    padding: $globalMargin;
+  }
+
+  .el-form-item__content {
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      vertical-align: middle;
+    }
+  }
+}
+
+.select-button {
+  display: table;
+  @include widthAndHeight($inputHeight);
+  line-height: $inputHeight;
+  @include radius(50%);
+  cursor: pointer;
+
+  &.active {
+    color: $primary;
+  }
+
+  i {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 20px;
+  }
+}
+
+.path-column {
+  .cell {
+    @include flex;
+    justify-content: center;
+    align-items: center;
+
+    .el-input {
+      @include box-flex();
+    }
+  }
+}
+
+.operation-column {
+  .cell {
+    @include flex;
+    @include justify-content(center);
+
+    span {
+      margin: 0 $globalMargin / 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
+
+.json-box {
+  max-width: 1200Px;
+  max-height: calc(100% - #{$globalMargin * 4});
+  margin: 0;
+  @include center(all);
+  @include flex;
+  @include flex-direction;
+
+  .el-dialog__title {
+    @include user-select();
+  }
+
+  .el-dialog__body {
+    padding: 0;
+  }
+
+  .el-dialog__footer {
+    @include box-flex();
+    overflow: auto;
+    text-align: left;
+  }
+}
+
+.delete-button {
+  background: $abnormal;
+  @include widthAndHeight(29px);
+  @include radius(50%);
+  display: inline-block;
+  cursor: pointer;
+
+  i {
+    line-height: 29px;
+    color: $white;
+    font-size: 16px;
+  }
+}
+
+.add-button {
+  background: $primary;
+  @include widthAndHeight(29px);
+  @include radius(50%);
+  display: inline-block;
+  cursor: pointer;
+
+  i {
+    line-height: 29px;
+    color: $white;
+    font-size: 16px;
+  }
+}
+
+.placeholder {
+  @include widthAndHeight(29px);
+  @include radius(50%);
+  display: inline-block;
+}
+
+/* components start */
+
+.management-list {
+  position: fixed;
+  top: $projectHeader;
+  left: $globalMargin;
+  bottom: $bottomMargin;
+  width: $managementListWidth;
+  background: $white;
+  @include radius(5px);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  @include user-select();
+
+  &-except {
+    position: absolute;
+    top: 0;
+    bottom: $bottomMargin;
+    left: $managementListWidth + $globalMargin / 2 + $globalMargin;
+    right: $rightMargin;
+    overflow: auto;
+  }
+
+  &-title {
+    padding: 0 $globalMargin * 2;
+    line-height: $managementListTitle;
+    font-size: 24px;
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+
+  &-box {
+    height: calc(100% - #{$managementListTitle});
+
+    .el-menu-item.is-active {
+      color: $primary;
+    }
+
+    .home-icon {
+      font-size: 24px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .icon {
+      font-size: 20px;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .fz-18 {
+      font-size: 18px;
+    }
+
+    .fz-16 {
+      font-size: 16px;
+    }
+  }
+}
+
+
+/* element rewrite */
+.reprint-remark-form .el-form-item__error {
+  transition: none!important;
+}
+.el-switch__core{
+  width: 40px!important;
+}
+
+.el-checkbox ::after {
+  transition: none!important;
+}
+
+.el-radio ::after {
+  transition: none!important;
+}
+
+.el-icon-caret-right {
+  transition: none!important;
+}
+
+.el-input__icon {
+  transition: none!important;
+}
+
+.el-input {
+
+  &__inner {
+    background: $white;background: $white;
+  }
+
+  &.active {
+    input {
+      background: $white;
+    }
+  }
+}
+
+.el-textarea__inner {
+  background: $globalBg;
+  font-family: inherit;
+}
+
+.el-table td, .el-table th {
+  padding: 10px 0;
+}
+
+.el-table th {
+  background: $primary;
+  color: $white;
+}
+
+.el-tooltip__popper {
+  max-width: 50%;
+}
+
+.el-button {
+  &--primary {
+    background: $primary;
+    border-color: $primary;
+
+    &:hover, &:focus {
+      background: rgba($primary, 0.75);
+      border-color: $primary;
+    }
+
+    &.is-active, &:active {
+      background: rgba($primary, 0.75);
+      border-color: $primary;
+    }
+  }
+}
+
+.el-switch {
+  &.is-checked {
+    .el-switch__core {
+      background: $primary;
+      border-color: $primary;
+    }
+  }
+
+  &__label {
+    &.is-active {
+      color: $primary;
+    }
+  }
+}
+
+.el-checkbox {
+  &__input {
+    &.is-checked .el-checkbox__inner {
+      background: rgba($primary, 0.2);
+      border-color: $primary;
+
+      &:after {
+        border-color: $primary;
+      }
+    }
+
+    &.is-checked+.el-checkbox__label {
+      color: $primary;
+    }
+  }
+
+  &__inner {
+    background: rgba($primary, 0.2);
+    border-color: $primary;
+  }
+}
+
+.el-input.is-active .el-input__inner, .el-input__inner:focus {
+  border-color: $primary;
+}
+
+.el-radio {
+  .el-radio__input.is-checked+.el-radio__label {
+    color: $primary;
+  }
+
+  .el-radio__input.is-checked .el-radio__inner {
+    border-color: $primary;
+    background: $primary;
+  }
+}
+
+.ant-tabs-nav .ant-tabs-tab {
+  &-active {
+    color: $primary;
+  }
+
+  &:hover {
+    color: $primary;
+  }
+}
+
+.ant-tabs-ink-bar {
+  background: $primary;
+}
+
+.ant-tag-checkable-checked {
+  background: $primary;
+}
+
+.ant-btn {
+  &:hover, &:focus {
+    border-color: $primary;
+    color: $primary;
+  }
+
+  &-primary {
+    background: $primary;
+    border-color: $primary;
+
+    &:hover, &:focus {
+      background: $primary;
+      border-color: $primary;
+    }
+  }
+}
+
+.ant-btn-group .ant-btn-primary:first-child:not(:last-child) {
+  border-right-color: $primary;;
+}
+
+
+.accessTarget {
+  position: relative;
+  .accessinfo {
+    /* position: absolute; */
+    width: calc(100% - 0.95rem);
+    margin-left: 1rem;
+    line-height: 2.5;
+    color: $success;
+
+    &.fail{
+      color: $danger;
+    }
+  }
+}
+.accessInvalid{
+  position: relative;
+  &::after{
+    content: '';
+    display: block;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: $globalBg;
+    opacity: 0.2;
+    position: absolute;
+  }
+}
+
+.flowEidter-sidebar{
+  flex: 0 0 300px!important;
+  width: 300px!important;
+  min-width: 300px!important;
+  max-width: 300px!important;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.flowEidter-attrbar{
+  flex: 0 0 350px!important;
+  width: 350px!important;
+  min-width: 350px!important;
+  max-width: 350px!important;
+}
+.hold-param .el-input{
+  width: 40%;
+}
+
+// 种类弹窗
+.dialog-type {
+  border-radius: 5px;
+
+  &-box {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+
+    &>li {
+      width: 40%;
+    }
+  }
+
+  &-icon {
+    height: $dialogTypeIconHeight;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+
+    &.active {
+      background: rgba($primary, 0.7);
+
+      i {
+        color: $white;
+      }
+    }
+
+    i {
+      font-size: $dialogTypeIconSize;
+    }
+  }
+
+  &-name {
+    margin-top: $globalMargin;
+    letter-spacing: 2px;
+    font-size: 16px;
+  }
+}
+
+// 居中弹窗
+.dialog-center {
+  margin-top: 0!important;
+  @include center(all);
+  border-radius: 5px;
+
+  &-height {
+    margin-top: 0!important;
+    @include center(all);
+    border-radius: 5px;
+    height: calc(100% - #{$globalMargin * 4});
+    @include flex;
+    flex-direction: column;
+
+    .el-dialog__body {
+      padding: 0 $globalMargin;
+      @include box-flex();
+      overflow: hidden;
+      position: relative;
+    }
+
+    .table-control {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: $globalMargin / 2;
+      font-size: 16px;
+      cursor: pointer;
+      user-select: none;
+
+      i {
+        color: $primary;
+        font-size: 20px;
+        vertical-align: middle;
+        margin-right: 5px;
+      }
+    }
+  }
+
+  .el-form-item__label {
+    line-height: inherit;
+  }
+}
+
+/* element-manage 元素管理 */
+.element-manage {
+  @include flex;
+  user-select: none;
+
+  &-title {
+    @include height($primaryHeight);
+    padding: 0 $globalMargin;
+    @include box-sizing();
+    font-size: $fontSize + 2px;
+    letter-spacing: 1px;
+    display: flex;
+
+    &>li {
+      cursor: pointer;
+
+      &.active {
+        color: $primary;
+      }
+
+      &:not(:last-child) {
+        margin-right: $globalMargin;
+      }
+    }
+  }
+
+  &-content {
+    height: calc(100% - #{$primaryHeight});
+    background: $globalBg;
+    border-radius: 5px;
+    overflow: hidden;
+
+    .flip-list-move {
+      transition: transform 0.5s;
+    }
+  }
+
+  &-control {
+    margin: 0 $globalMargin;
+    @include flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    .el-button {
+      i {
+        font-size: 20px;
+        transform: rotateZ(-90deg) rotateY(180deg);
+      }
+    }
+
+    .el-button+.el-button {
+      margin: $globalMargin / 2 0 0;
+    }
+  }
+
+
+  &-list {
+    @include box-flex();
+    height: 500px;
+
+    .element-list {
+      &-option {
+        @include height($primaryHeight);
+        padding: 0 $globalMargin;
+        @include box-sizing();
+        position: relative;
+        cursor: pointer;
+
+        &.no-select {
+          background: $gray;
+          cursor: no-drop;
+          color: #999;
+        }
+
+        &.active {
+          background: $primary;
+          color: $white;
+
+          &:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: $primary;
+          }
+        }
+      }
+    }
+  }
+}
+
+.global-dialog {
+  margin-top: 0!important;
+  @include center(all);
+  border-radius: 5px;
+
+  .el-dialog__body {
+    padding: $globalMargin / 2 $globalMargin;
+  }
+
+  .el-form-item__label {
+    line-height: inherit;
+  }
+
+  .el-select {
+    width: 100%;
+  }
+
+  // 应用图标上传
+  .application-upload {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .el-upload {
+      @include widthAndHeight(100px);
+      background: #f5f5f5;
+      border-radius: 10px;
+      overflow: hidden;
+
+      .el-image {
+        @include widthAndHeight(100%);
+      }
+    }
+
+    &-box {
+      @include widthAndHeight(100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      i {
+        font-size: $fontSize * 2;
+      }
+    }
+  }
+
+  // 应用详情
+  .application-detail {
+    letter-spacing: 1px;
+
+    &-title {
+      font-size: $fontSize + 2px;
+      padding: $globalMargin / 2 0;
+    }
+
+    &-text {
+      padding: $globalMargin / 2 0;
+    }
+  }
+}

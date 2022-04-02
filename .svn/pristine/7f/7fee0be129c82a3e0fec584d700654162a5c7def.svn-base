@@ -1,0 +1,1407 @@
+<template>
+  <div class="management-list-except project-interface"
+       v-loading="testLoading">
+    <section class="project-module">
+      <p class="project-module-name">
+        数据接口管理 <span>[{{ detailData.interfaceName || '新增提交接口' }}]</span>
+      </p>
+      <div class="rt">
+        <template v-if="status.isPublished === 1">
+          发布地址：
+          <el-input id="publishPath"
+                    class="publish-path"
+                    v-model="publishPath"
+                    readonly
+                    @click.native="copyPath"></el-input>
+          <template v-if="bugInfo.bugStatus === 0">
+            <el-tooltip class="item"
+                        effect="dark"
+                        :content="bugInfo.bugDescription"
+                        placement="top-start">
+              <i class="el-icon-info"></i>
+            </el-tooltip>
+            <el-button type="info"
+                       @click="closeClick">关闭问题</el-button>
+          </template>
+          <el-button v-else
+                     type="warning"
+                     @click="bugClick">提交bug</el-button>
+          <el-button v-if="status.isEnable === 1"
+                     type="info"
+                     @click="changeEnable(0)">停用</el-button>
+          <el-button v-if="status.isEnable === 0"
+                     type="success"
+                     @click="changeEnable(1)">启用</el-button>
+        </template>
+        <template v-else>
+          <template v-if="bugInfo.bugStatus === 0">
+            <el-tooltip class="item"
+                        effect="dark"
+                        :content="bugInfo.bugDescription"
+                        placement="top-start">
+              <i class="el-icon-info"></i>
+            </el-tooltip>
+            <el-button type="info"
+                       @click="closeClick">关闭问题</el-button>
+          </template>
+          <el-button v-else
+                     type="warning"
+                     @click="bugClick">提交bug</el-button>
+        </template>
+        <el-button type="primary"
+                   @click="interfacePublish">
+          {{ status.isPublished === 0 ? '发布' : '取消发布' }}
+        </el-button>
+        <el-button type="danger"
+                   @click="deleteClick">删除</el-button>
+      </div>
+    </section>
+    <section class="project-info">
+      <el-scrollbar>
+        <p class="project-title">接口信息</p>
+        <div class="project-info-control">
+          <p class="info">
+            <i class="el-icon-time"></i>
+            <span>创建时间： {{ createData.createdTime }}</span>
+            <i class="el-icon-user"></i>
+            <span>创建账号： {{ createData.createUser }}</span>
+          </p>
+          <div :class="['button-group', {'accessInvalid': accessFail}]">
+            <el-button type="primary"
+                       @click="interfaceTest">测试</el-button>
+            <el-button type="primary"
+                       @click="interfaceSave">保存</el-button>
+          </div>
+        </div>
+        <div class="project-list">
+          <div class="project-list-row">
+            <div class="quarter">
+              <label for="">接口名称：</label>
+              <el-input v-model="detailData.interfaceName"></el-input>
+            </div>
+            <div class="quarter">
+              <label for="">加载时间：</label>
+              <el-input v-model="detailData.targetUrlLoadTime"></el-input>
+            </div>
+            <div class="quarter">
+              <label for="">登录选项：</label>
+              <el-select v-model="detailData.autoLoginId"
+                         placeholder="请选择"
+                         @change="iFrameLoad">
+                <el-option v-for="item in logins"
+                           :key="item.value"
+                           :label="item.name"
+                           :value="item.value">
+                </el-option>
+              </el-select>
+            </div>
+          </div>
+          <div class="project-list-row">
+            <div class="half longsite accessTarget">
+              <label for="">URL地址：</label>
+              <el-input v-model="detailData.targetUrl"
+                        @blur="accessValidate(snapShotchange)"></el-input>
+              <i v-show="!loginLoading"
+                 class="el-icon-loading"></i>
+              <i v-show="loginLoading"
+                 class="el-icon-check"></i>
+              <div :class="['accessinfo', {'fail': accessFail}]"
+                   v-if="accessInfo">
+                <i :class="accessFail ? 'el-icon-warning' : 'el-icon-success'"></i>
+                {{`${accessMessage}。当前接入系统数${targetUrlCount},许可接入数${usableCount}`}}
+              </div>
+            </div>
+          </div>
+
+          <div class="project-list-row">
+            <div class="half">
+              <label for="">备注：</label>
+              <el-input v-model="detailData.remark"
+                        resize="none"
+                        :autosize="{ minRows: 3 }"
+                        type="textarea"></el-input>
+            </div>
+          </div>
+        </div>
+        <p class="project-title">
+          执行资源固化
+          <el-switch v-model="detailData.sendWay"
+                     active-color="#0487fe"
+                     inactive-color="#ccd0d3"
+                     active-text="是否指定"
+                     :active-value="1"
+                     :inactive-value="0">
+          </el-switch>
+          <transition name="el-zoom-in-top">
+            <div class="project-list-row title-list"
+                 v-show="detailData.sendWay">
+              <div class="half longsite">
+                <label for="">执行资源：</label>
+                <el-select v-model="detailData.clientId"
+                           placeholder="请选择">
+                  <el-option v-for="item in clients"
+                             :key="item.value"
+                             :label="item.name"
+                             :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>
+            </div>
+          </transition>
+        </p>
+        <p class="project-title">
+          <span>表单提交配置</span>
+          <!--  <el-switch
+              v-model="detailData.isCustom"
+              active-color="#0487fe"
+              inactive-color="#ccd0d3"
+              active-text="是否自定义"
+              :active-value="1"
+              :inactive-value="0">
+            </el-switch> -->
+        </p>
+        <div class="project-list-row">
+          <div class="quarter">
+            <label for="">提交：</label>
+            <el-input :class="{activfe: isSelect === 'submit'}"
+                      v-model="detailData.commitValue.elementPath"></el-input>
+            <i title=""
+               @click="getPath('submit')"
+               :class="['el-icon-thumb', {active: isSelect === 'submit'}]"></i>
+          </div>
+        </div>
+        <p class="project-title">表单参数配置</p>
+        <div class="project-info-table">
+          <p class="table-control"
+             @click="addRow">
+            <i class="el-icon-circle-plus"></i>
+            <span>新增一行</span>
+          </p>
+          <el-table :data="tableData"
+                    row-key="subOrder"
+                    default-expand-all
+                    :indent="32"
+                    :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+                    max-height="450"
+                    style="width: 100%;">
+            <el-table-column align="center"
+                             width="100">
+              <template slot-scope="scope">
+                <i v-show="!scope.row.isLast"
+                   class="el-icon-folder-opened"></i>
+              </template>
+            </el-table-column>
+            <el-table-column align="center"
+                             prop="valueSaveToKey"
+                             label="属性名称">
+              <template slot-scope="scope">
+                <el-input v-model="scope.row.valueSaveToKey"></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column width="120"
+                             align="center"
+                             label="自定义接口">
+              <template slot-scope="scope">
+                <el-switch v-model="scope.row.isCustom"
+                           active-color="#0487fe"
+                           inactive-color="#ccd0d3"
+                           :active-value="1"
+                           :inactive-value="0"
+                           @change="changeCustom($event, scope.row)">
+                </el-switch>
+              </template>
+            </el-table-column>
+            <el-table-column min-width="190"
+                             class-name="path-column"
+                             align="center"
+                             prop="elementPath"
+                             label="值路径">
+              <template slot-scope="scope">
+                <template v-if="scope.row.isCustom === 0">
+                  <el-input :class="{active: isSelect === scope.$index}"
+                            v-model="scope.row.elementPath"></el-input>
+                  <span title=""
+                        @click="getPath(scope.$index, scope.row)"
+                        :class="['select-button', {active: isSelect === scope.$index}]">
+                  <i class="el-icon-thumb"></i>
+                </span>
+                </template>
+                <el-button @click="importScript(scope.$index, scope.row)"
+                           v-else>导入自定义脚本</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column width="140"
+                             align="center"
+                             prop="elementAttributeName"
+                             label="值属性名称">
+              <template slot-scope="scope">
+                <el-select v-if="scope.row.isCustom === 0"
+                           v-model="scope.row.elementAttributeName"
+                           placeholder="请选择">
+                  <el-option v-for="item in valueName"
+                             :key="item.value"
+                             :label="item.name"
+                             :value="item.value">
+                  </el-option>
+                </el-select>
+                <template v-else></template>
+              </template>
+            </el-table-column>
+            <el-table-column width="140"
+                             align="center"
+                             prop="valueSaveAsType"
+                             label="值类型">
+              <template slot-scope="scope">
+                <el-select v-if="scope.row.isCustom === 0"
+                           v-model="scope.row.valueSaveAsType"
+                           placeholder="请选择">
+                  <el-option v-for="item in valueType"
+                             :key="item.value"
+                             :label="item.name"
+                             :value="item.value">
+                  </el-option>
+                </el-select>
+                <template v-else></template>
+              </template>
+            </el-table-column>
+            <el-table-column class-name="operation-column"
+                             align="center"
+                             label="操作">
+              <template slot-scope="scope">
+              <span class="add-button"
+                    v-if="!scope.row.isLast && (scope.row.valueSaveAsType === 4 || scope.row.valueSaveAsType === 5)"
+                    @click="addChildren(scope.$index, scope.row)">
+                <i class="el-icon-plus"></i>
+              </span>
+                <span class="placeholder"
+                      v-else></span>
+                <span class="delete-button"
+                      @click="deleteRow(scope.row, scope)">
+                <i class="el-icon-delete"></i>
+              </span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-dialog title="自定义脚本"
+                     top="0"
+                     custom-class="custom-dialog"
+                     :visible.sync="isVisible">
+            <prism-editor v-model="textarea"
+                          :code="textarea"
+                          language="js"></prism-editor>
+            <div slot="footer">
+              <el-button type="primary"
+                         @click="confirmSave">保 存</el-button>
+              <el-button type="primary"
+                         @click="cancellation">取 消</el-button>
+            </div>
+          </el-dialog>
+        </div>
+      </el-scrollbar>
+    </section>
+    <el-dialog top="0"
+               ref="box"
+               title="选择路径"
+               custom-class="select-path"
+               :visible.sync="pageVisible">
+      <div slot="title"
+           class="select-path-head"
+           id="snap-fresh">
+        <span>选择路径</span>
+        <i v-if="loginLoading"
+           title="刷新页面"
+           class="el-icon-refresh"
+           @click="iFrameLoad"></i>
+        <i v-if="!loginLoading"
+           class="el-icon-loading"></i>
+      </div>
+      <div slot="footer"
+           class="select-path-body"
+           id="snap-area"
+           v-loading="!loginLoading">
+        <iframe id="iframe"
+                name="iframe"
+                src=""
+                frameborder="0"></iframe>
+        <div ref="mark"
+             class="iframe-mark"></div>
+        <div ref="other"
+             class="iframe-other"></div>
+        <div ref="tips"
+             class="iframe-tips"
+             v-show="currentTag.tagName"
+             @mouseleave="otherHidden">
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'parent' +i}]"
+               @mouseenter="otherShow(item, i, 'parent')"
+               v-for="(item, i) in parentTag"
+               :key="'parent' + i">
+            <el-checkbox v-model="tagSelected"
+                         @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName"
+                    class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className"
+                    class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div class="iframe-tips-option current"
+               @mouseenter="otherHidden">
+            <el-checkbox v-model="tagSelected"
+                         @change="checked => selectClick(checked, currentTag)">
+              <span class="tag-name">{{ currentTag.tagName }}</span>
+              <span v-if="currentTag.idName"
+                    class="tag-id">{{ currentTag.idName }}</span>
+              <span v-if="currentTag.className"
+                    class="tag-class">{{ currentTag.className }}</span>
+              <template v-if="currentTag.attributeName && currentTag.attributeValue">
+                <span class="attribute-name">{{ currentTag.attributeName }}:</span>
+                <span class="attribute-value">{{ currentTag.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'child' +i}]"
+               @mouseenter="otherShow(item, i, 'child')"
+               v-for="(item, i) in childTag"
+               :key="'child' +i">
+            <el-checkbox v-model="tagSelected"
+                         @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName"
+                    class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className"
+                    class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <el-dialog top="0"
+               title="测试结果"
+               custom-class="json-box"
+               :visible.sync="jsonVisible">
+      <pre slot="footer">{{ jsonString }}</pre>
+    </el-dialog>
+    <el-dialog top="0"
+               ref="bug"
+               title="bug描述"
+               custom-class="enter-code"
+               :visible.sync="bugVisible">
+      <el-input type="textarea"
+                resize="none"
+                rows="10"
+                placeholder="请输入内容"
+                v-model="bugInfo.bugDescription">
+      </el-input>
+      <div slot="footer">
+        <el-button @click="bugVisible = false">取 消</el-button>
+        <el-button type="primary"
+                   @click="reportBug">确 定</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog top="0"
+               ref="接口提交测试"
+               title="接口提交测试"
+               custom-class="enter-code"
+               width="700px"
+               :visible.sync="TjVisible">
+      <div class="TjVisible-info">
+        <el-table :data="tableData1"
+                  style="width: 100%">
+          <el-table-column prop="tit"
+                           label="参数名"
+                           width="180">
+          </el-table-column>
+          <el-table-column prop="type"
+                           label="参数类型"
+                           width="180">
+          </el-table-column>
+          <el-table-column label="值">
+            <template slot-scope="scope">
+              <el-input v-model="scope.row.val"></el-input>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div slot="footer">
+        <el-button type="primary"
+                   @click="interfaceTestRun">提交测试</el-button>
+        <el-button @click="interfaceClearData">清空内容</el-button>
+      </div>
+    </el-dialog>
+    <!--验证码输入-->
+    <el-dialog top="0"
+               ref="box"
+               title="输入验证码"
+               custom-class="enter-code"
+               v-loading="codeLoading"
+               :visible.sync="codeVisible">
+      <el-form :model="codeForm"
+               label-width="60px">
+        <el-form-item label="验证码">
+          <el-image :src="codeForm.verify_code_img_url + randomCode"
+                    @load="codeLoad">
+            <div slot="placeholder"
+                 class="image-slot">
+              加载中<span class="dot">...</span>
+            </div>
+          </el-image>
+        </el-form-item>
+        <el-form-item label="输入码">
+          <el-input v-model="codeForm.code"
+                    autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="() => {this.codeVisible = false;this.pageVisible ? (this.pageVisible = false,this.loginLoading = true) : (this.loginLoading = true);}">取 消</el-button>
+        <el-button type="primary"
+                   @click="saveCode">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+let scaleRatio = 1;
+export default {
+  name: 'projectInterface',
+  data () {
+    return {
+      usableCount: 0,
+      targetUrlCount: 0,
+      accessInfo: false,
+      accessFail: false,
+      accessMessage: '',
+      snapShotState: {
+        url: '',
+        loaded: false
+      },
+      clients: [],
+      htmlType: 0,
+      codeVisible: false,
+      codeForm: {},
+      codeLoaded: false,
+      randomCode: '?time=' + Math.random(),
+      codeLoading: false,
+      f: '',
+      detailData: {
+        id: '',
+        interfaceName: '',
+        targetUrl: '',
+        targetUrlLoadTime: 200,
+        autoLoginId: '',
+        remark: '',
+        sendWay: 0,
+        clientId: '',
+        commitValue: {
+          elementPath: '',
+          elementPathType: 0
+        }
+      },
+      createData: {
+        createdTime: '',
+        createUser: ''
+      },
+      status: {
+        isPublished: 0,
+        isEnable: 0,
+        status: 0
+      },
+      tableData: [],
+      pathType: [],
+      valueName: [],
+      valueType: [],
+      logins: [],
+      isSelect: '',
+      isVisible: false,
+      textarea: '',
+      currentRow: '',
+      pageVisible: false,
+      parentTag: [],
+      currentTag: {},
+      childTag: [],
+      tagSelected: false,
+      sPath: '',
+      parentNodeX: '',
+      parentNodeY: '',
+      publishPath: '',
+      newpublishPath: '',
+      jsonString: '',
+      jsonVisible: false,
+      loginLoading: false,
+      maxOrder: 0,
+      currentOrder: Number,
+      canSave: true,
+      maxIFrameWidth: 1150,
+      maxIFrameHeight: 0,
+      hoverOption: '',
+      testLoading: false,
+      bugInfo: {
+        bugDescription: '',
+        bugStatus: 0
+      },
+      bugVisible: false,
+      TjVisible: false,
+      tableData1: []
+    }
+  },
+  created () {
+    this.interfaceDetail();
+    this.interfaceSelect();
+  },
+  computed: {
+    dealPathUtilFunc: function () {
+      let { dealPathFunc } = this.baseConfig;
+      /* eslint-disable no-unneeded-ternary*/
+      return dealPathFunc ? dealPathFunc : 'getTopParentPath'
+    }
+  },
+  watch: {
+    '$route' (to, form) {
+      this.isSelect = '';
+      this.isSuccess = false;
+      this.loginLoading = false;
+      this.maxOrder = 0;
+      this.interfaceDetail();
+    },
+    'detailData.sendWay' (val) {
+      val && this.interfaceClients();
+    }
+  },
+  directives: {
+    blank: {
+      bind (el, binding, vnode) {
+        function documentHandler (e) {
+          if (el.contains(e.target)) {
+            return false;
+          }
+          if (binding.expression) {
+            binding.value(e);
+          }
+        }
+        el.__vueClickOutside__ = documentHandler;
+        document.addEventListener('click', documentHandler);
+      },
+      update () { },
+      unbind (el, binding) {
+        document.removeEventListener('click', el.__vueClickOutside__);
+        delete el.__vueClickOutside__;
+      }
+    }
+  },
+  methods: {
+    /* @event 其他选择显示
+     * @param {Object} item —— 除当前选中的其他父子级元素
+     * @param {Number} i —— 当前选中在父级/子级中的索引值
+     * @param {String} type —— 当前选中的类型（父 or 子）*/
+    otherShow (item, i, type) {
+      this.nodeMark(item.tag);
+      this.hoverOption = type + i;
+    },
+    /* @event 其他选中隐藏 */
+    otherHidden () {
+      this.setMark('other', 0, 0, 0, 0);
+      this.hoverOption = '';
+    },
+    /* @event 复制已发布地址 */
+    copyPath () {
+      try {
+        let oInput = document.getElementById('publishPath');
+        oInput.select(); // 选择对象
+        document.execCommand('Copy'); // 执行浏览器复制命令
+        this.$message.success('复制成功！');
+      } catch (e) {
+        this.$message.error('复制错误！');
+      }
+    },
+    /* @event 点击弹出自定义脚本 */
+    importScript (i, row) {
+      this.isVisible = true;
+      this.currentRow = row.subOrder;
+      this.textarea = row.customScript;
+    },
+    /* @event 保存自定义脚本 */
+    confirmSave () {
+      this.tableData.forEach((first, i) => {
+        this.currentRow === first.subOrder ? first.customScript = this.textarea : '';
+        if (first.hasOwnProperty('children')) {
+          first.children.forEach((second, j) => {
+            this.currentRow === second.subOrder ? second.customScript = this.textarea : '';
+            if (second.hasOwnProperty('children')) {
+              second.children.forEach((third, z) => {
+                this.currentRow === third.subOrder ? third.customScript = this.textarea : '';
+              })
+            }
+          })
+        }
+      });
+      this.isVisible = false;
+    },
+    /* @event 关闭自定义脚本 */
+    cancellation () {
+      this.isVisible = false;
+      this.currentRow = '';
+      this.textarea = '';
+    },
+    /* @method 接口系统详情信息 */
+    interfaceDetail () {
+      console.log(this.$route.query.id)
+      if (this.$route.query.id) {
+        let data = new URLSearchParams();
+        data.append('id', this.$route.query.id);
+        this.$axios.post('/interface/detail', data, s => {
+          for (let key in this.detailData) {
+            if (typeof this.detailData[key] !== 'object') {
+              this.detailData[key] = s.data[key];
+            } else {
+              this.detailData[key].elementPath = s.data[key].elementPath;
+              this.detailData[key].elementPathType = s.data[key].elementPathType;
+            }
+          }
+          for (let c in this.createData) {
+            this.createData[c] = s.data[c];
+          }
+          for (let k in this.status) {
+            this.status[k] = s.data[k];
+          }
+
+          this.bugInfo = {
+            bugDescription: s.data.bugDescription,
+            bugStatus: s.data.bugStatus
+          }
+          /*20210607 优化快照资源*/
+          this.loginLoading = true;
+          this.snapShotState.url = this.detailData.targetUrl;
+          // 循环添加必要参数
+          s.data.items.forEach((first, i, arr) => {
+            // 第一级
+            if (first.hasOwnProperty('children') && first.children.length > 0) {
+              first.children.forEach((second, j) => {
+                // 第二级
+                second.parentIndex = i;
+                if (second.hasOwnProperty('children') && second.children.length > 0) {
+                  second.children.forEach((third) => {
+                    // 第三级
+                    third.parentIndex = j;
+                    third.isLast = true;
+                  })
+                }
+              });
+            }
+          });
+          this.tableData = s.data.items;
+          this.maxOrder = s.data.maxOrder ? s.data.maxOrder + 1 : 0;
+          //this.publishPath = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/interface/' + this.detailData.id + '/';
+          this.publishPath = s.data.newpublishPath
+
+          this.$nextTick(() => {
+            // this.iFrameLoad(this.iFrameShow);
+          });
+        });
+      } else {
+        this.interfaceEmpty();
+      }
+    },
+    /* @method 下拉数据 */
+    interfaceSelect () {
+      let data = new URLSearchParams();
+      data.append('type', 0)
+      this.$axios.post('/interface/selectDataByType', data, s => {
+        this.pathType = s.pathTypes;
+        this.valueName = s.valueNames;
+        this.valueType = s.valueTypes;
+        s.logins.unshift({
+          name: '不需要登录',
+          value: ''
+        });
+        this.logins = s.logins;
+      });
+      this.interfaceClients();
+    },
+    interfaceClients () {
+      /*已注册在线执行客户端资源*/
+      this.$axios.get('/client/getClient', '', s => {
+        this.clients = s.data.map(client => {
+          let { name, value, status, canUse, mac, ip, id, version } = client;
+          let nameStr = id ? [id.slice(0, 5), id.slice(-5)].join('-') : '';
+          name = `[ID_${nameStr}][v${version}]`;
+          value = id;
+          return { name, value, canUse: canUse || status }
+        }).filter(client => !client.canUse) || [
+          {
+            name: '无可用运行资源',
+            value: ''
+          }
+        ];
+      });
+    },
+    /* @method 清除现有数据 */
+    interfaceEmpty () {
+      this.detailData = {
+        id: '',
+        interfaceName: '',
+        targetUrl: '',
+        targetUrlLoadTime: 200,
+        autoLoginId: '',
+        remark: '',
+        sendWay: 0,
+        clientId: '',
+        commitValue: {
+          elementPath: '',
+          elementPathType: 0
+        }
+      };
+      this.createData = {
+        createdTime: '',
+        createUser: ''
+      };
+      this.status = {
+        isPublished: 0,
+        isEnable: 0,
+        status: 0
+      };
+      this.tableData = [];
+      this.bugInfo = {
+        bugDescription: '',
+        bugStatus: ''
+      }
+    },
+    /* @event 新增一行 */
+    addRow () {
+      console.log(this.maxOrder);
+      this.tableData.push({
+        customScript: '',
+        elementAttributeName: 0,
+        elementPath: '',
+        elementPathType: 0,
+        isCustom: 0,
+        subOrder: this.maxOrder++,
+        valueSaveAsType: 0,
+        valueSaveToKey: '',
+        value: ''
+      });
+    },
+    /* @event 删除当前行 */
+    deleteRow (item, scope) {
+      if (!item.hasOwnProperty('parentIndex')) {
+        // 第一级
+        this.tableData.splice(this.tableData.findIndex(first => item.subOrder === first.subOrder), 1);
+      } else {
+        if (!item.hasOwnProperty('isLast')) {
+          // 第二级
+          this.tableData.forEach((first, i) => {
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j, secondArr) => {
+                item.subOrder === second.subOrder ? secondArr.splice(j, 1) : '';
+              })
+            }
+          });
+        } else {
+          // 第三级
+          this.tableData.forEach((first, i) => {
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j) => {
+                if (second.hasOwnProperty('children')) {
+                  second.children.forEach((third, z, thirdArr) => {
+                    item.subOrder === third.subOrder ? thirdArr.splice(z, 1) : '';
+                  })
+                }
+              })
+            }
+          });
+        }
+      }
+    },
+    /* 新增下级 */
+    addChildren (i, item) {
+      console.log(this.maxOrder);
+      let obj = {
+        parentIndex: item.subOrder,
+        customScript: '',
+        elementAttributeName: 0,
+        elementPath: '',
+        elementPathType: 0,
+        isCustom: 0,
+        subOrder: this.maxOrder++,
+        valueSaveAsType: 0,
+        valueSaveToKey: ''
+      };
+      if (item.hasOwnProperty('parentIndex')) {
+        obj.isLast = true;
+      }
+      if (item.hasOwnProperty('children')) {
+        item.children.push(obj)
+      } else {
+        this.$set(item, 'children', [obj]);
+      }
+    },
+    /* @method 自定义接口 */
+    changeCustom (val, row) {
+      console.log(val, row);
+    },
+    getPath (name, item) {
+      console.log(name, item);
+      this.currentTag = {};
+      this.parentTag = [];
+      this.childTag = [];
+      if (!this.detailData.targetUrl) {
+        this.$message.warning('请先输入登录URL')
+      } else {
+        this.isSelect = name;
+        if (item) {
+          this.currentOrder = item.subOrder;
+        }
+        this.pageVisible = true;
+        !this.snapShotState.loaded && this.iFrameLoad(this.iFrameShow);
+      }
+    },
+    blankClick: function (e) {
+      window.selectMask.remove();
+    },
+    /* @event 删除事件 */
+    deleteClick () {
+      this.$confirm('确认删除当前接口？', '提示', {
+        distinguishCancelAndClose: true,
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+      }).then(() => {
+        let data = new URLSearchParams();
+        data.append('id', this.detailData.id);
+        this.$axios.post('/interface/delete', data, s => {
+          this.$message.success('删除成功！');
+          this.$emit('update-list', true);
+          this.$router.push('/index');
+        });
+      }).catch(() => { });
+    },
+    /* @event 接口发布 */
+    interfacePublish () {
+      let data = new URLSearchParams();
+      data.append('id', this.$route.query.id || '');
+      data.append('isPublish', this.status.isPublished ? 0 : 1);
+      this.$axios.post('/interface/publish', data, s => {
+        this.$message.success(s.message);
+        if (s.data) {
+          this.newpublishPath = s.data.publishUrl
+        } else {
+          this.newpublishPath = ''
+        }
+        this.interfaceDetail();
+      });
+    },
+    /* @event 启用禁用修改 */
+    changeEnable (isEnable) {
+      let data = new URLSearchParams();
+      data.append('id', this.$route.query.id);
+      data.append('isEnable', isEnable);
+      this.$axios.post('/interface/enable', data, s => {
+        this.interfaceDetail();
+      });
+    },
+    /* @event 接口测试 */
+    interfaceTest () {
+      console.log('接口结果填写数据')
+      console.log(this.tableData)
+      this.tableData1 = []
+      this.tableData.forEach((item) => {
+        let typename
+        if (item.valueSaveAsType === 0) {
+          typename = '字符串'
+        } else if (item.valueSaveAsType === 1) {
+          typename = '数字'
+        } else if (item.valueSaveAsType === 2) {
+          typename = '字符串列表'
+        } else if (item.valueSaveAsType === 3) {
+          typename = '数字列表'
+        } else if (item.valueSaveAsType === 4) {
+          typename = '对象'
+        } else if (item.valueSaveAsType === 5) {
+          typename = '对象列表'
+        }
+        let obj = {
+          tit: item.valueSaveToKey,
+          type: typename,
+          val: ''
+        }
+        this.tableData1.push(obj)
+      })
+      console.log(this.tableData1)
+      this.TjVisible = true
+    },
+    /* @event 接口测试数据清空 */
+    interfaceClearData () {
+      //console.log('接口测试数据清空')
+      this.interfaceTest()
+    },
+    /* @event 接口测试结果 */
+    interfaceTestRun () {
+      console.log('接口结果测试')
+      console.log(this.baseConfig.TAILOR_URL)
+      console.log(this.detailData.id)
+      console.log(' = ' + JSON.stringify(this.tableData1))
+      let datarun = new URLSearchParams();
+      //let dataNew = []
+      for (var p in this.tableData1) { //遍历json数组时，这么写p为索引，0,1
+        if (this.tableData1[p].val === '') {
+          alert(this.tableData1[p].tit + '不能为空')
+          return false;
+        } else {
+          datarun.append(this.tableData1[p].tit, this.tableData1[p].val)
+        }
+
+        //  let item = {
+        //    key:this.tableData1[p].tit,
+        //    val:this.tableData1[p].val
+        //  }
+        //  dataNew.append(item)
+      }
+      //datarun.push('data', this.tableData1)
+      console.log(datarun)
+      this.testLoading = true;
+      this.jsonVisible = true;
+      this.jsonString = '数据提交中';
+      this.interfaceSave(() => {
+        let paths = '/interface/test?interfaceId=' + this.detailData.id + '&type=0 ';
+        console.log('paths1 = ' + paths)
+        this.$axios.post(paths, datarun, (res) => {
+          this.jsonString = res.data ? JSON.stringify(res.data, null, 4) : JSON.stringify(res, null, 4);
+          this.jsonVisible = true;
+          this.testLoading = false;
+        });
+      });
+    },
+    /* @event 保存接口 */
+    interfaceSave (fun) {
+      console.log(this.detailData);
+      //return false
+      let data = new URLSearchParams();
+      for (let key in this.detailData) {
+        if (typeof this.detailData[key] !== 'object') {
+          data.append(key, this.detailData[key])
+        }
+      }
+      data.append('type', '0') //提交接口
+      for (let one in this.detailData) {
+        if (typeof this.detailData[one] === 'object') {
+          for (let two in this.detailData[one]) {
+            data.append(one + '.' + two, this.detailData[one][two]);
+          }
+        }
+      }
+      let sub = -1;
+      this.tableData.forEach((first, i, arr) => {
+        sub += 1;
+
+        let fOrder = sub;
+        for (let f in first) {
+          if (f !== 'subOrder' && f !== 'children') {
+            data.append('items[' + sub + '].' + f, first[f]);
+          }
+        }
+        if (first.hasOwnProperty('children') && first.children.length > 0) {
+          first.children.forEach((second) => {
+            sub += 1;
+
+            let sOrder = sub;
+            data.append('items[' + sub + '].parentIndex', fOrder);
+            for (let s in second) {
+              if (s !== 'subOrder' && s !== 'parentIndex' && s !== 'children') {
+                data.append('items[' + sub + '].' + s, second[s]);
+              }
+            }
+
+            if (second.hasOwnProperty('children') && second.children.length > 0) {
+              second.children.forEach((third) => {
+                sub += 1;
+
+                data.append('items[' + sub + '].parentIndex', sOrder);
+                for (let t in third) {
+                  if (t !== 'subOrder' && t !== 'parentIndex' && t !== 'children' && t !== 'isLast') {
+                    data.append('items[' + sub + '].' + t, third[t]);
+                  }
+                }
+              })
+            }
+          });
+        }
+      });
+      if (this.canSave) {
+        this.canSave = true;
+        this.$axios.post('/interface/save', data, s => {
+          typeof fun === 'object' ? this.$message.success(s.message) : fun();
+          this.$emit('update-list', true);
+          this.$router.push({ path: '/project/interfaceSubmit', query: { id: s.id } });
+          //this.$router.push({path: '/developer/interface'});
+          this.canSave = true;
+        }, f => {
+          this.canSave = true;
+        });
+      }
+    },
+    /* @event 提交bug点击事件 */
+    bugClick () {
+      this.bugVisible = true;
+    },
+    /* @event 关闭bug点击事件 */
+    closeClick () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      this.$axios.post('/interface/closeBug', data, s => {
+        this.bugInfo.bugStatus = 1;
+      });
+    },
+    /* @method 提交bug */
+    reportBug () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      data.append('description', this.bugInfo.bugDescription);
+      this.$axios.post('/interface/reportBug', data, s => {
+        this.bugInfo.bugStatus = 0;
+        this.bugVisible = false;
+      });
+    },
+    accessValidate (fun) {
+      this.loginLoading = false;
+      let data = new URLSearchParams();
+      data.append('url', this.detailData.targetUrl)
+      this.$axios.post('/interface/checkIpCount', data, s => {
+        let { data: { isAdd, usableCount, targetUrlCount }, message } = s;
+        isAdd && (typeof fun === 'function' ? fun(this.iFrameShow) : (this.loginLoading = true));
+        this.accessInfo = true;
+        this.usableCount = Number(usableCount) > 100 ? '99+' : usableCount;
+        this.targetUrlCount = Number(targetUrlCount) > 100 ? '99+' : targetUrlCount;
+        this.accessMessage = message;
+        this.accessFail = !isAdd;
+      });
+    },
+    /* @method iframe加载 */
+    iFrameLoad (fun) {
+      this.loginLoading = false;
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/snapshot';
+      let data = new URLSearchParams();
+      data.append('snapshot_url', this.detailData.targetUrl);
+      data.append('snapshot_load_time', this.detailData.targetUrlLoadTime);
+      data.append('snapshot_login_data_is_post', 0);
+
+      if (this.detailData.autoLoginId) {
+        data.append('snapshot_mode', 3);
+        data.append('snapshot_is_login', 1);
+        data.append('snapshot_login_id', this.detailData.autoLoginId);
+      } else {
+        data.append('snapshot_mode', 0);
+        data.append('snapshot_is_login', 0);
+      }
+
+      axios.post(paths, data).then((res) => {
+        iframeHtml.innerHTML = res.data;
+
+        this.$nextTick(() => {
+          if (res.headers['snapshot-html-type']) {
+            this.codeForm = res.data;
+            this.$set(this.codeForm, 'code', '');
+            this.resetImg();
+            this.codeVisible = true;
+            this.snapShotState.loaded = false;
+            return;
+          }
+          this.loginLoading = true;
+          this.snapShotState.loaded = true;
+          typeof fun === 'function' ? fun() : '';
+          if (!this.$route.query.id) {
+            this.iFrameShow();
+          }
+        });
+      });
+    },
+    /* @function iframe页面绑定鼠标移动事件 */
+    mouseEvent (e) {
+      e.preventDefault();
+      let event = e || window.event,
+        target = event.target;
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+
+      if (this.isSelect || this.isSelect === 0) {
+        this.setMark('mark', eleWidth, eleHeight, offsetX, offsetY);
+        this.setTips(offsetX, offsetY, target, event.clientX, event.clientY);
+      }
+    },
+    /* @function 阻止iframe页面默认点击事件 */
+    preventClick (e) {
+      e.preventDefault();
+    },
+    /* @function 设置遮罩层样式
+    * @param {String} name —— 选中元素对应mark种类 [mark/other]
+    * @param {Number||String} width —— 选中元素的宽度
+    * @param {Number||String} height —— 选中元素的高度
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值 */
+    setMark (name, width, height, left, top) {
+      let style = {
+        'width': width + 'px',
+        'height': height + 'px',
+        'left': left + 'px',
+        'top': top + 'px'
+      }
+      for (let k in style) {
+        this.$refs[name].style[k] = style[k];
+      }
+    },
+    /* @function 设置标签样式
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值
+    * @param {DOM} target —— 选中元素
+    * @param {Number||String} moveX —— 当前鼠标 X 轴上的值
+    * @param {Number||String} moveY —— 当前鼠标 Y 轴上的值 */
+    setTips (left, top, target, moveX, moveY) {
+      this.currentTag = this.nodeParams(target);
+
+      this.parentTag = this.parentNode(target, 3);
+      this.childTag = this.childNode(target, 3);
+
+      this.$nextTick(() => {
+        let tipHalfOffsetWidth = this.$refs.tips.offsetWidth / 2;
+        let tipOffsetHeight = this.$refs.tips.offsetHeight;
+        let boxHeight = this.$refs.box.offsetHeight;
+        let eleWidth = target.offsetWidth * scaleRatio,
+          eleHeight = target.offsetHeight * scaleRatio;
+
+        if (this.maxIFrameWidth === 0) {
+          left += 2;
+        } else {
+          if (moveX - tipHalfOffsetWidth * 2 < 0) {
+            left = 2;
+          } else {
+            if (moveX + tipHalfOffsetWidth * 2 > this.maxIFrameWidth) {
+              left = this.maxIFrameWidth - tipHalfOffsetWidth * 2 - 2;
+            } else {
+              left = moveX - tipHalfOffsetWidth;
+            }
+          }
+        }
+
+        if (tipOffsetHeight > top) {
+          if (eleHeight > tipOffsetHeight * 3) {
+            top += 8;
+          } else {
+            top = top + eleHeight;
+          }
+        } else {
+          top = top - tipOffsetHeight;
+        }
+
+        let style = {
+          'left': left + 'px',
+          'top': top + 'px'
+        };
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+        }
+      });
+    },
+    /* @function 查询父级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    parentNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.parentElement) {
+          let parentDom = target.parentElement;
+          let parent = this.nodeParams(target.parentElement);
+          arr.unshift(parent);
+          if (parentDom.parentElement) {
+            target = parentDom;
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询子级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    childNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.children && target.children.length > 0 && target.children[0].nodeName.toLowerCase() !== 'script') {
+          let childDom = target.children[0];
+          let child = this.nodeParams(target.children[0]);
+          arr.push(child);
+          if (childDom.children && childDom.children.length > 0 && childDom.children[0].nodeName.toLowerCase() !== 'script') {
+            target = target.children[0];
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询节点元素的属性及参数
+    * @param {DOM} target —— 当前需要查询的节点元素 */
+    nodeParams (target) {
+      let tag = {
+        tag: target,
+        tagName: target.nodeName.toLowerCase(),
+        idName: target.id === '' ? '' : '#' + target.id,
+        className: target.className === '' ? '' : '.' + target.className,
+        sPath: this.utils[this.dealPathUtilFunc](target)
+      };
+
+      if (target.getAttribute('href')) {
+        tag.attributeName = 'href';
+        tag.attributeValue = target.getAttribute('href');
+      } else if (target.getAttribute('src')) {
+        tag.attributeName = 'src';
+        tag.attributeValue = target.getAttribute('src');
+      }
+
+      return tag
+    },
+    /* @function hover选中的元素的遮罩
+    * @param {DOM} target —— hover选中的元素  */
+    nodeMark (target) {
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+      this.setMark('other', eleWidth, eleHeight, offsetX, offsetY);
+    },
+    /* @event 确认选中路径（多选框点击）
+    * @param {Boolean} val —— 当前点击多选框对应的boolean值
+    * @param {Object} item —— 当前点击多选框对应的路径对象 */
+    selectClick (val, item) {
+      console.log(this.isSelect);
+      if (val) {
+        if (this.isSelect === 'submit') {
+          //this.tableData[this.isSelect].elementPath = item.sPath;
+          this.detailData.commitValue.elementPath = item.sPath
+        }
+        this.pageVisible = false;
+        this.tagSelected = false;
+        this.tableData.forEach((first, i) => {
+          this.currentOrder === first.subOrder ? first.elementPath = item.sPath : '';
+          if (first.hasOwnProperty('children')) {
+            first.children.forEach((second, j) => {
+              this.currentOrder === second.subOrder ? second.elementPath = item.sPath : '';
+              if (second.hasOwnProperty('children')) {
+                second.children.forEach((third, z) => {
+                  this.currentOrder === third.subOrder ? third.elementPath = item.sPath : '';
+                })
+              }
+            })
+          }
+        });
+        //this.tableData[this.isSelect].elementPath = this.sPath;
+        console.log(item.sPath);
+      }
+    },
+    /* @function iframe 选中事件  */
+    iFrameShow () {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+
+      this.parentNodeX = this.utils.getAbsolutelyPosition(iFrame.parentNode).left * scaleRatio;
+      this.parentNodeY = this.utils.getAbsolutelyPosition(iFrame.parentNode).top * scaleRatio;
+
+      this.iFrameRemove();
+
+      iDoc.addEventListener('mousemove', this.mouseEvent, false);
+      iDoc.addEventListener('click', this.preventClick);
+      /*刷新快照，去掉选择提示*/
+      document.querySelector('#snap-area').addEventListener('mouseenter', () => {
+        let style = {
+          'visibility': 'visible'
+        }
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+          this.$refs.mark.style[k] = style[k];
+        }
+      }, false);
+      /*刷新快照，去掉选择提示*/
+      document.querySelector('#snap-area').addEventListener('mouseleave', () => {
+        let style = {
+          'visibility': 'hidden'
+        }
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+          this.$refs.mark.style[k] = style[k];
+        }
+      }, false);
+    },
+    /* @function iframe 事件移除 */
+    iFrameRemove () {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      iDoc.removeEventListener('mousemove', this.mouseEvent, false);
+      iDoc.removeEventListener('click', this.preventClick, false);
+    },
+    /*快照地址改变，拉取一次快照*/
+    snapShotchange () {
+      let { url, loaded } = this.snapShotState;
+
+      if (url !== this.detailData.targetUrl) {
+        this.snapShotState.url = this.detailData.targetUrl;
+        loaded = false;
+      }
+      loaded ? (this.loginLoading = true) : (this.iFrameLoad(this.iFrameShow));
+    },
+    /*  @event 验证码加载完成  */
+    codeLoad () {
+      this.codeLoaded = true;
+    },
+    /*  @event 重置验证码 */
+    resetImg () {
+      if (this.codeLoaded) {
+        this.randomCode = '?time=' + Math.random();
+        this.codeLoaded = false;
+      }
+    },
+    /* @event 保存验证码 */
+    saveCode () {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      console.log(this.codeForm);
+      this.codeLoading = true;
+      let data = new URLSearchParams();
+      data.append('verifycode', this.codeForm.code);
+      axios.post(this.codeForm.post_url, data).then((res) => {
+        iframeHtml.innerHTML = res.data;
+        this.loginLoading = true;
+        this.snapShotState.loaded = true;
+        this.iFrameShow();
+
+        this.codeLoading = false;
+        this.codeVisible = false;
+      });
+    }
+  },
+  mounted () {
+
+  },
+  //生命周期 - 销毁完成
+  destroyed () {
+    this.iFrameRemove();
+  }
+}
+</script>

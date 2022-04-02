@@ -1,0 +1,147 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">获取</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="尝试获取"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.ignoreError"
+                 active-text="是否尝试获取"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <a-form-item label="输出"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="输出变量"
+               :value="currentSelect.outputVarName"
+               @change="outputVarNameChange" />
+    </a-form-item>
+    <a-form-item label="属性名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入属性名称"
+               :value="currentSelect.elementInfos[0].valueSaveToKey"
+               @change="nodeNecessaryPathKeyChange" />
+    </a-form-item>
+    <a-form-item label="获取位置"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.elementInfos[0].elementPath"
+               @change="nodeNecessaryPathChange" />
+      <a-icon style="width: 20%;fontSize:16px;"
+              type="fullscreen-exit"
+              @click="getPath" />
+    </a-form-item>
+    <a-form-item label="值属性"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-select class="select-in-afi"
+                 v-model="currentSelect.elementInfos[0].elementAttributeName"
+                 placeholder="请选择">
+        <el-option v-for="item in valueName"
+                   :key="item.value"
+                   :label="item.name"
+                   :value="item.value">
+        </el-option>
+      </el-select>
+    </a-form-item>
+    <a-form-item label="值类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-select class="select-in-afi"
+                 v-model="currentSelect.elementInfos[0].valueSaveAsType"
+                 @change="nodeNecessaryPathValueSaveAsTypeChange"
+                 placeholder="请选择">
+        <el-option v-for="item in valueType"
+                   :key="item.value"
+                   :label="item.name"
+                   :value="item.value">
+        </el-option>
+      </el-select>
+    </a-form-item>
+    <a-form-item label="高级"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-button type="primary"
+                @click="showPathTable">
+        设置
+      </a-button>
+    </a-form-item>
+  </a-form>
+</template>
+
+<script>
+export default {
+  name: 'get',
+  data () {
+    return {
+      valueName: [],
+      valueType: []
+    }
+  },
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath', 'gainTableShow'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    nodeNecessaryPathKeyChange (e) {
+      this.necessaryChange({ attr: 'valueSaveToKey', payload: e.target.value })
+    },
+    nodeNecessaryPathChange (e) {
+      this.necessaryChange({ attr: 'elementPath', payload: e.target.value })
+    },
+    necessaryChange ({ attr, payload }) {
+      let necessaryObj = Object.assign({}, this.currentSelect.elementInfos[0], { [attr]: payload })
+      let newelementInfos = [necessaryObj].concat(this.currentSelect.elementInfos.slice(1));
+      this.nodeAttrChange({ attr: 'elementInfos', payload: newelementInfos });
+    },
+    outputVarNameChange (e) {
+      this.nodeAttrChange({ attr: 'outputVarName', payload: e.target.value })
+    },
+    getPath () {
+      this.processGetPath(this.currentSelect.id, this.currentSelect)
+    },
+    showPathTable () {
+      this.gainTableShow(this.currentSelect.id, this.currentSelect)
+    },
+    nodeNecessaryPathValueSaveAsTypeChange (e) {
+      [4, 5].includes(e) && this.showPathTable();
+    },
+    /* @method 下拉数据 */
+    interfaceSelect () {
+      this.$axios.post('/interface/selectData', '', s => {
+        this.valueName = s.valueNames;
+        this.valueType = s.valueTypes;
+      });
+    }
+  },
+  created () {
+    this.interfaceSelect();
+  }
+}
+</script>

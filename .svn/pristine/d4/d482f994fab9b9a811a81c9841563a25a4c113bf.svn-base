@@ -1,0 +1,5 @@
+{
+  "title": "WISEMOTION应用平台",
+  "BASE_URL": "http://h3w.f3322.net:7070/EquitmentManage",
+  "TAILOR_URL": "http://192.168.2.11:8070"
+}

@@ -1,0 +1,98 @@
+.index {
+  %indexBox {
+    width: 100%;
+    @include radius(5px);
+    background: $white;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  &-login {
+    @extend %indexBox;
+    height: $indexLogin;
+    margin-bottom: $globalMargin / 2;
+
+    &-title {
+      font-family: 'PingFangSCRegular';
+      line-height: $indexLoginTitle;
+      font-size: 24px;
+      font-weight: bold;
+      padding: 0 $indexLoginPadding;
+      @include box-sizing();
+    }
+
+    &-box {
+      width: 100%;
+      height: $indexLogin - $indexLoginTitle;
+
+      .system-list {
+        width: 100%;
+        @extend .clear-both;
+
+        &-item {
+          float: left;
+          width: 20%;
+          padding: $indexLoginPadding / 4 $indexLoginPadding;
+          @include box-sizing();
+        }
+
+        &-box {
+          height: $indexLoginSystem;
+          padding: 5px;
+          @include box-sizing();
+          border: 1px solid $primary;
+          @include radius(5px);
+          position: relative;
+
+          iframe {
+            position: absolute;
+            width: 480%;
+            height: 480%;
+            border: 0;
+            border-radius: 6px;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: scale(0.2) translate(-50%, -50%);
+            transform: scale(0.2) translate(-50%, -50%);
+            -webkit-transform-origin: top left;
+            transform-origin: top left;
+          }
+        }
+
+        &-name {
+          line-height: $indexLogin - $indexLoginTitle - $indexLoginSystem - $indexLoginPadding / 2;
+          font-size: 18px;
+          @include single-omit;
+        }
+      }
+    }
+  }
+
+  &-interface {
+    @extend %indexBox;
+    height: calc(100% - #{$indexLogin + $globalMargin / 2});
+
+    &-title {
+      @include height($indexInterfaceTitle);
+      padding: 0 $rightMargin;
+
+      .rt {
+        display: table;
+
+        &>li {
+          display: table-cell;
+          vertical-align: middle;
+          padding-left: 50px;
+        }
+      }
+    }
+
+    &-box {
+      height: calc(100% - #{$indexInterfaceTitle});
+      padding: 0 $rightMargin;
+
+      .el-switch.is-disabled .el-switch__core {
+        cursor: pointer;
+      }
+    }
+  }
+}

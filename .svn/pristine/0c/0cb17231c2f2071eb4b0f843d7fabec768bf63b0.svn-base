@@ -1,0 +1,69 @@
+// global
+$fontSize: 14px;
+
+$globalMargin: 20px;
+$bottomMargin: 15px;
+$rightMargin: 30px;
+
+$inputHeight: 30px;
+
+$managementListWidth: 267px;
+$managementListTitle: 20px; // 68px
+$managementListPadding: 15px;
+$managementListInfo: 36px;
+
+$pageHeight: 40px;
+$pageBottom: 20px;
+$pagePadding: 15px;
+
+$dialogTableInput: 35px;
+$dialogItemMargin: 15px;
+
+$labelWidth: 95px;
+
+$primaryHeight: 40px;
+$smallHeight: 32px;
+$miniHeight: 20px;
+
+// index
+$indexLogin: 290px;
+$indexLoginPadding: 30px;
+$indexLoginTitle: 60px;
+$indexLoginSystem: 170px;
+$indexInterfaceTitle: 56px;
+
+// project
+$projectHeader: 70px;
+$projectModule: 78px;
+$projectTitle: 54px;
+$projectTableControl: 50px;
+
+$tableHeaderHeight: 44px;
+
+// user
+$userInfoWidth: 850Px;
+$userInput: 40px;
+
+// home
+$homeMargin: 20Px;
+$homeHeader: 78Px;
+$homeHeaderWidth: 1200Px;
+$homeInputHeight: 40Px;
+
+$homeContainerWidth: 1100Px;
+$homeTitleLine: 10Px;
+$homeListTitle: 245Px;
+
+$homeDetailsNav: 135Px;
+$homeDetailsOther: 270Px;
+
+$homeFooter: 200Px;
+
+//topic
+$topicWidth: calc(100% - 267px - 60px);
+$topicLayoutCardWidth: calc(192px * 1.8);
+$topicLayoutCardHeight: calc(108px * 1.8);
+
+// component
+$dialogTypeIconHeight: 120px;
+$dialogTypeIconSize: 64px;

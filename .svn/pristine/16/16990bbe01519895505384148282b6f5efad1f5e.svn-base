@@ -1,0 +1,1251 @@
+<template>
+  <div class="management-list-except project-charts" v-loading="testLoading">
+    <section class="project-module">
+      <p class="project-module-name">
+        图表配置 <span>[{{ detailData.chartName || '新增图表配置' }}]</span>
+      </p>
+      <div class="rt">
+        <template v-if="status.isPublished === 1">
+          发布地址：
+          <el-input id="publishPath" class="publish-path" v-model="publishPath" readonly
+                    @click.native="copyPath"></el-input>
+          <template v-if="bugInfo.bugStatus === 0">
+            <el-tooltip class="item" effect="dark" :content="bugInfo.bugDescription" placement="top-start">
+              <i class="el-icon-info"></i>
+            </el-tooltip>
+            <el-button type="info" @click="closeClick">关闭问题</el-button>
+          </template>
+          <el-button v-else type="warning" @click="bugClick">提交bug</el-button>
+          <el-button v-if="status.isEnable === 1" type="info" @click="changeEnable(0)">停用</el-button>
+          <el-button v-if="status.isEnable === 0" type="success" @click="changeEnable(1)">启用</el-button>
+        </template>
+        <template v-else>
+          <template v-if="bugInfo.bugStatus === 0">
+            <el-tooltip class="item" effect="dark" :content="bugInfo.bugDescription" placement="top-start">
+              <i class="el-icon-info"></i>
+            </el-tooltip>
+            <el-button type="info" @click="closeClick">关闭问题</el-button>
+          </template>
+          <el-button v-else type="warning" @click="bugClick">提交bug</el-button>
+        </template>
+        <el-button type="primary" @click="interfacePublish">
+          {{ status.isPublished === 0 ? '发布' : '取消发布' }}
+        </el-button>
+        <el-button type="danger" @click="deleteClick">删除</el-button>
+      </div>
+    </section>
+    <section class="project-info">
+      <p class="project-title">图表基本信息</p>
+      <div class="project-info-control">
+        <p class="info">
+          <i class="el-icon-time"></i>
+          <span>创建时间： {{ createData.createdTime }}</span>
+          <i class="el-icon-user"></i>
+          <span>创建账号： {{ createData.createUser }}</span>
+        </p>
+        <div class="button-group">
+          <el-button type="primary" :disabled="!loginLoading" @click="interfaceTest">测试</el-button>
+          <el-button type="primary"  :disabled="!loginLoading" @click="interfaceSave">保存</el-button>
+        </div>
+      </div>
+      <div class="project-list">
+        <div class="project-list-row">
+          <div class="half">
+            <label for="">图表名：</label>
+            <el-input v-model="detailData.chartName"></el-input>
+          </div>
+          <div class="half">
+            <label for="">数据接口：</label>
+            <el-input v-model="detailData.targetUrl" @blur="iFrameLoad"></el-input>
+            <i v-show="!loginLoading" class="el-icon-loading"></i>
+            <i v-show="loginLoading" class="el-icon-check"></i>
+            <span class="refresh-cookJson" @click="interfaceDetail">刷新数据</span>
+          </div>
+        </div>
+        <div class="project-list-row">
+          <div class="half remark">
+            <label for="">备注：</label>
+            <el-input v-model="detailData.remark" resize="none" :autosize="{ minRows: 3 }" type="textarea"></el-input>
+          </div>
+        </div>
+        <div class="project-list-row" v-if="tableJsonShow">
+          <div class="table-conf-group">
+            <label for="">展示字段：</label>
+            <el-radio-group v-model="detailData.displayFieldPath">
+              <el-radio-button
+                :label="tab.path"
+                :key="tab.path"
+                v-for="tab in tableJsonTabs"
+              >
+                {{tab.name}}
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+        </div>
+      </div>
+      <!--<p class="project-title">图表配置</p>-->
+      <div class="project-info-even">
+        <div class="project-info-table">
+          <p class="project-title">
+            图表参数配置
+            <span class="cookJson-view" @click="pickObjectPath()">查看接口数据</span>
+          </p>
+          <p class="table-control" @click="addRow">
+            <i class="el-icon-circle-plus"></i>
+            <span>新增一行</span>
+          </p>
+
+          <el-table
+            :data="tableData"
+            row-key="valueSaveToKey"
+            default-expand-all
+            :indent="32"
+            :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+            max-height="450"
+            v-if="!['4', '6'].includes(confType)"
+            style="width: 100%;">
+
+            <el-table-column
+              align="center"
+              prop="valueSaveToKey"
+              label="属性名称">
+              <template slot-scope="scope">
+                <el-input readonly v-model="scope.row.valueSaveToKey"></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column
+              width="120"
+              align="center"
+              label="自定义接口"
+            >
+              <template slot-scope="scope">
+                <el-switch
+                  v-model="scope.row.isCustom"
+                  active-color="#0487fe"
+                  inactive-color="#ccd0d3"
+                  :active-value="1"
+                  :inactive-value="0"
+                  @change="changeCustom($event, scope.row)">
+                </el-switch>
+              </template>
+            </el-table-column>
+            <el-table-column
+              min-width="190"
+              class-name="path-column"
+              align="center"
+              prop="elementPath"
+              label="值路径">
+              <template slot-scope="scope">
+                <template v-if="scope.row.isCustom === 0">
+                  <el-input :class="{active: isSelect === scope.$index}"
+                            v-model="scope.row.elementPath"></el-input>
+                  <span title="" @click="getPath(scope.$index, scope.row)"
+                        :class="['select-button', {active: isSelect === scope.$index}]">
+                    <i class="el-icon-thumb"></i>
+                  </span>
+                </template>
+                <el-button @click="importScript(scope.$index, scope.row)" v-else>导入自定义脚本</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column
+              class-name="operation-column"
+              align="center"
+              label="操作">
+              <template slot-scope="scope">
+              <span class="add-button"
+                    v-if="!scope.row.isLast && (scope.row.valueSaveAsType === 4 || scope.row.valueSaveAsType === 5)"
+                    @click="addChildren(scope.$index, scope.row)">
+                <i class="el-icon-plus"></i>
+              </span>
+              <!--<span class="placeholder" v-else></span>-->
+              <span class="delete-button" v-if="!scope.row.isRequired" @click="deleteRow(scope.row, scope)">
+                <i class="el-icon-delete"></i>
+              </span>
+              <span v-else>必配项</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-table
+            :data="tableData"
+            row-key="valueSaveToKey"
+            default-expand-all
+            :indent="32"
+            :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+            max-height="450"
+            v-else
+            style="width: 100%;">
+
+            <el-table-column
+              align="center"
+              prop="valueSaveToKey"
+              label="属性名称">
+              <template slot-scope="scope">
+                <el-input readonly v-model="scope.row.valueSaveToKey"></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column
+              width="120"
+              align="center"
+              label="column名称"
+            >
+              <template slot-scope="scope">
+                <el-input v-model="scope.row.columnName"></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column
+              min-width="190"
+              class-name="path-column"
+              align="center"
+              prop="elementPath"
+              label="值路径">
+              <template slot-scope="scope">
+                <template v-if="scope.row.isCustom === 0">
+                  <el-input :class="{active: isSelect === scope.$index}"
+                            v-model="scope.row.elementPath"></el-input>
+                  <span title="" v-if="['6'].includes(confType)" @click="getPath(scope.$index, scope.row)"
+                        :class="['select-button', {active: isSelect === scope.$index}]">
+                    <i class="el-icon-thumb"></i>
+                  </span>
+                </template>
+                <el-button @click="importScript(scope.$index, scope.row)" v-else>导入自定义脚本</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column
+              class-name="operation-column"
+              align="center"
+              label="操作">
+              <template slot-scope="scope">
+              <span class="add-button"
+                    v-if="!scope.row.isLast && (scope.row.valueSaveAsType === 4 || scope.row.valueSaveAsType === 5)"
+                    @click="addChildren(scope.$index, scope.row)">
+                <i class="el-icon-plus"></i>
+              </span>
+                <!--<span class="placeholder" v-else></span>-->
+                <span class="delete-button" v-if="!scope.row.isRequired" @click="deleteRow(scope.row, scope)">
+                <i class="el-icon-delete"></i>
+              </span>
+                <span v-else>必配项</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-dialog
+            title="自定义脚本"
+            top="0"
+            custom-class="custom-dialog"
+            :visible.sync="isVisible">
+            <prism-editor v-model="textarea" :code="textarea" language="js"></prism-editor>
+            <div slot="footer">
+              <el-button type="primary" @click="confirmSave">保 存</el-button>
+              <el-button type="primary" @click="cancellation">取 消</el-button>
+            </div>
+          </el-dialog>
+        </div>
+        <div :class="['project-info-chart', {'forTable': tableJsonShow}]">
+          <p class="project-title">图表预览</p>
+          <div class="project-charts-preview">
+            <template v-if="['4', '6'].includes(confType)">
+              <component class="" :is="confchart" :cookJson="cookJson" v-if="loginLoading" :cloumnPaths="tableData" :tableDataPath="detailData.displayFieldPath"></component>
+            </template>
+            <template v-else>
+              <component class="preview-box" :is="confchart" :cookJson="cookJson" v-if="loginLoading && (chartPreview.xalis && chartPreview.yalis)" :xalisPath="chartPreview.xalis" :yalisPath="chartPreview.yalis"></component>
+            </template>
+          </div>
+        </div>
+      </div>
+
+    </section>
+    <el-dialog
+      top="0"
+      ref="box"
+      title="选择路径"
+      custom-class="select-path"
+      :visible.sync="pageVisible">
+      <div slot="footer" class="select-path-body"
+           v-loading="!loginLoading">
+        <iframe id="iframe" name="iframe" src="" frameborder="0"></iframe>
+        <div ref="mark" class="iframe-mark"></div>
+        <div ref="other" class="iframe-other"></div>
+        <div ref="tips" class="iframe-tips" v-show="currentTag.tagName" @mouseleave="otherHidden">
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'parent' +i}]"
+               @mouseenter="otherShow(item, i, 'parent')" v-for="(item, i) in parentTag" :key="'parent' + i">
+            <el-checkbox v-model="tagSelected"  @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName" class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className" class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div class="iframe-tips-option current" @mouseenter="otherHidden">
+            <el-checkbox v-model="tagSelected" @change="checked => selectClick(checked, currentTag)">
+              <span class="tag-name">{{ currentTag.tagName }}</span>
+              <span v-if="currentTag.idName" class="tag-id">{{ currentTag.idName }}</span>
+              <span v-if="currentTag.className" class="tag-class">{{ currentTag.className }}</span>
+              <template v-if="currentTag.attributeName && currentTag.attributeValue">
+                <span class="attribute-name">{{ currentTag.attributeName }}:</span>
+                <span class="attribute-value">{{ currentTag.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'child' +i}]"
+               @mouseenter="otherShow(item, i, 'child')" v-for="(item, i) in childTag" :key="'child' +i">
+            <el-checkbox v-model="tagSelected" @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName" class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className" class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <el-dialog
+      top="0"
+      title="测试结果"
+      custom-class="json-box"
+      :visible.sync="jsonVisible">
+      <pre slot="footer">{{ jsonString }}</pre>
+    </el-dialog>
+    <el-dialog
+      top="0"
+      ref="bug"
+      title="bug描述"
+      custom-class="enter-code"
+      :visible.sync="bugVisible">
+      <el-input
+        type="textarea"
+        resize="none"
+        rows="10"
+        placeholder="请输入内容"
+        v-model="bugInfo.bugDescription">
+      </el-input>
+      <div slot="footer">
+        <el-button @click="bugVisible = false">取 消</el-button>
+        <el-button type="primary" @click="reportBug">确 定</el-button>
+      </div>
+    </el-dialog>
+    <!--cookJson path select-->
+    <el-dialog
+      v-if="centerDialogVisible"
+      class="cookJson-dailog custom-dialog"
+      :visible.sync="centerDialogVisible"
+      center>
+            <span slot="title" class="title">
+              {{confFiled ? `配置${confFiled}展示` : '接口'}}数据
+            </span>
+      <div class="block">
+        <vue-json-pretty
+          v-if="renderOK"
+          :data="cookJson"
+          :path="path"
+          :deep="deep"
+          :show-double-quotes="showDoubleQuotes"
+          :highlight-mouseover-node="highlightMouseoverNode"
+          :highlight-selected-node="highlightSelectedNode"
+          :show-length="showLength"
+          :show-line="showLine"
+          :select-on-click-node="selectOnClickNode"
+          :collapsed-on-click-brackets="collapsedOnClickBrackets"
+          v-model="jsonCheckedValue"
+          :path-selectable="available"
+          :selectable-type="selectableType"
+          :show-select-controller="showSelectController"
+          :custom-value-formatter="useCustomLinkFormatter ? customLinkFormatter : null"
+          @click="handleClick(...arguments)"
+        >
+        </vue-json-pretty>
+      </div>
+      <span slot="footer" class="dialog-footer">
+              <el-button @click="centerDialogVisible = false">取 消</el-button>
+              <el-button type="primary" @click="commitPick">确 定</el-button>
+            </span>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+import * as confChartHub from '@/components/echarts/confviews/index'
+import jsonselectMixin from '@/mixins/json-pretty-select-mixin'
+import chartConfViewTypes from '@/utils/chartConfViewTypes'
+import Util from '@/utils/index'
+
+const {detectUtil: {detectTableJson}} = Util;
+let scaleRatio = 1;
+
+const optionCells = () => [
+  {
+    'customScript': '',
+    'elementAttributeName': 0,
+    'elementPath': '',
+    'elementPathType': 0,
+    'isCustom': 0,
+    'subOrder': 0,
+    'valueSaveAsType': 0,
+    'valueSaveToKey': 'xalis',
+    'isRequired': 1
+  },
+  {
+    'customScript': '',
+    'elementAttributeName': 0,
+    'elementPath': '',
+    'elementPathType': 0,
+    'isCustom': 0,
+    'subOrder': 1,
+    'valueSaveAsType': 0,
+    'valueSaveToKey': 'yalis',
+    'isRequired': 1
+  }
+]
+export default {
+  name: 'projectCharts',
+  data () {
+    return {
+      detailData: {
+        id: '',
+        chartName: '',
+        targetUrl: '',
+        autoLoginId: '',
+        remark: '',
+        convertScript: '',
+        displayFieldPath: '', //原始表格数据
+        type: '2'
+      },
+      cookJson: {}, //接口响应原始待处理数据
+      displayFieldPath: '',
+      centerDialogVisible: false,
+      confFiled: '',
+      createData: {
+        createdTime: '',
+        createUser: ''
+      },
+      status: {
+        isPublished: 0,
+        isEnable: 0,
+        status: 0
+      },
+      tableData: [],
+      pathType: [],
+      valueName: '',
+      valueType: [],
+      logins: [],
+      isSelect: '',
+      isVisible: false,
+      textarea: '',
+      currentRow: '',
+      pageVisible: false,
+      parentTag: [],
+      currentTag: {},
+      childTag: [],
+      tagSelected: false,
+      sPath: '',
+      parentNodeX: '',
+      parentNodeY: '',
+      publishPath: '',
+      jsonString: '',
+      jsonVisible: false,
+      loginLoading: false,
+      maxOrder: 0,
+      currentOrder: Number,
+      canSave: true,
+      maxIFrameWidth: 1150,
+      maxIFrameHeight: 0,
+      hoverOption: '',
+      testLoading: false,
+      bugInfo: {
+        bugDescription: '',
+        bugStatus: 0
+      },
+      bugVisible: false,
+      chartPreview: {
+        xalis: '',
+        yalis: ''
+      }
+    }
+  },
+  created () {
+    this.interfaceDetail();
+    this.interfaceSelect();
+  },
+  watch: {
+    '$route' (to, form) {
+      this.isSelect = '';
+      this.isSuccess = false;
+      this.loginLoading = false;
+      this.maxOrder = 0;
+      this.interfaceDetail();
+    },
+    'tableJsonTabs': function (val) {
+      if (val.length && !this.displayFieldPath) {
+        this.displayFieldPath = val[0].path
+      }
+    },
+    'displayFieldPath': function () {
+      this.detailData.displayFieldPath = this.displayFieldPath
+    },
+    'tableJsonTable': function (val) {
+      !this.tableData.length && (this.tableData = val)
+    }
+  },
+  computed: {
+    confType: function () {
+      return this.$route.params.type
+    },
+    confchart: function () {
+      let self = this;
+      console.log(chartConfViewTypes)
+      const {chartConfViewComponent: confChartName} = chartConfViewTypes.find(type => type.chartConfViewType === self.confType);
+
+      return confChartName || 'SingleBarY'
+    },
+    tableJsonTabs: function () {
+      return detectTableJson(this.cookJson).tableHub
+    },
+    tableJsonTable: function () {
+      let tableSchame = this.displayFieldPath ? ((path) => {
+        let tableRow = this.tableJsonTabs.find(tableJsonTab => tableJsonTab.path === path).json[0]
+        let tableColumns = Object.keys(tableRow).filter(tableColumn => {
+          let ctype = Object.prototype.toString.call(tableRow[tableColumn]).slice(8, -1);
+          return ['String', 'Number'].includes(ctype)
+        }).map(tableColumn => {
+          return {
+            'customScript': '',
+            'elementAttributeName': 0,
+            'elementPath': `${path}[0].${tableColumn}`,
+            'elementPathType': 0,
+            'isCustom': 0,
+            'subOrder': 0,
+            'valueSaveAsType': 0,
+            'valueSaveToKey': tableColumn,
+            'isRequired': 0,
+            'columnName': ''
+          }
+        })
+        return tableColumns
+      })(this.displayFieldPath) : []
+      return tableSchame
+    },
+    tableJsonShow: function () {
+      return this.tableJsonTabs.length && this.confType === '4'
+    }
+  },
+  provide () {
+    return {
+      interfaceScriptSave: this.interfaceScriptSave
+    }
+  },
+  mixins: [jsonselectMixin],
+  components: {...confChartHub},
+  methods: {
+    pickObjectPath (filed) {
+      this.confFiled = filed;
+      this.centerDialogVisible = true;
+    },
+    available (path, data) {
+      // console.log(path)
+      if (this.confFiled === 'xalis') {
+        return typeof data !== 'number' && path.indexOf('id') === -1
+      }
+      if (this.confFiled === 'yalis') {
+        return (typeof data === 'number') && path.indexOf('id') === -1
+      }
+      if (['cards'].includes(this.confFiled)) {
+        return (typeof data === 'number') && path.indexOf('id') === -1
+      }
+
+      return false
+    },
+    /* @event 其他选择显示
+     * @param {Object} item —— 除当前选中的其他父子级元素
+     * @param {Number} i —— 当前选中在父级/子级中的索引值
+     * @param {String} type —— 当前选中的类型（父 or 子）*/
+    otherShow (item, i, type) {
+      this.nodeMark(item.tag);
+      this.hoverOption = type + i;
+    },
+    /* @event 其他选中隐藏 */
+    otherHidden () {
+      this.setMark('other', 0, 0, 0, 0);
+      this.hoverOption = '';
+    },
+    /* @event 复制已发布地址 */
+    copyPath () {
+      try {
+        let oInput = document.getElementById('publishPath');
+        oInput.select(); // 选择对象
+        document.execCommand('Copy'); // 执行浏览器复制命令
+        this.$message.success('复制成功！');
+      } catch (e) {
+        this.$message.error('复制错误！');
+      }
+    },
+    /* @event 点击弹出自定义脚本 */
+    importScript (i, row) {
+      this.isVisible = true;
+      this.currentRow = row.subOrder;
+      this.textarea = row.customScript;
+    },
+    /* @event 保存自定义脚本 */
+    confirmSave () {
+      this.tableData.forEach((first, i) => {
+        this.currentRow === first.subOrder ? first.customScript = this.textarea : '';
+        if (first.hasOwnProperty('children')) {
+          first.children.forEach((second, j) => {
+            this.currentRow === second.subOrder ? second.customScript = this.textarea : '';
+            if (second.hasOwnProperty('children')) {
+              second.children.forEach((third, z) => {
+                this.currentRow === third.subOrder ? third.customScript = this.textarea : '';
+              })
+            }
+          })
+        }
+      });
+      this.isVisible = false;
+    },
+    /* @event 关闭自定义脚本 */
+    cancellation () {
+      this.isVisible = false;
+      this.currentRow = '';
+      this.textarea = '';
+    },
+    /* @method 接口系统详情信息 */
+    interfaceDetail () {
+      if (this.$route.query.id) {
+        let data = new URLSearchParams();
+        data.append('id', this.$route.query.id);
+        this.$axios.post('/chart/findById', data, s => {
+          console.log(s)
+          const convertNames = (obj, options) => {
+            Object.keys(options).forEach(name => {
+              let {[name]: value} = obj;
+              obj = Object.assign(obj, {[options[name]]: value})
+            })
+
+            return obj
+          }
+
+          s.data.detailData = convertNames(s.data.detailData, {
+            interfaceName: 'chartName'
+          })
+
+          for (let key in this.detailData) {
+            if (typeof this.detailData[key] !== 'object') {
+              this.detailData[key] = s.data.detailData[key];
+            }
+          }
+          for (let c in this.createData) {
+            this.createData[c] = s.data.createData[c];
+          }
+          for (let k in this.status) {
+            this.status[k] = s.data.status[k];
+          }
+
+          this.bugInfo = {
+            bugDescription: s.data.bugData.bugDescription,
+            bugStatus: s.data.bugData.bugStatus
+          }
+          const configSchame = (options) => {
+            return Object.assign({
+              'customScript': '',
+              'elementAttributeName': 0,
+              'elementPath': '',
+              'elementPathType': 0,
+              'isCustom': 0,
+              'subOrder': 1,
+              'valueSaveAsType': 0,
+              'valueSaveToKey': '',
+              'isRequired': 1
+            }, options)
+          }
+          let previewoptions = {};
+          // 循环添加必要参数
+          s.data.configs.forEach((first, i, arr) => {
+            let {key, value} = first;
+            first = Object.assign(first, configSchame({valueSaveToKey: key, elementPath: value}))
+            previewoptions[key] = value;
+            // 第一级
+            if (first.hasOwnProperty('children') && first.children.length > 0) {
+              first.children.forEach((second, j) => {
+                // 第二级
+                second.parentIndex = i;
+                let {key, value} = second;
+                second = Object.assign(second, configSchame({valueSaveToKey: key, elementPath: value}))
+                previewoptions[key] = value;
+                if (second.hasOwnProperty('children') && second.children.length > 0) {
+                  second.children.forEach((third) => {
+                    // 第三级
+                    third.parentIndex = j;
+                    third.isLast = true;
+                    let {key, value} = third;
+                    third = Object.assign(third, configSchame({valueSaveToKey: key, elementPath: value}))
+                    previewoptions[key] = value;
+                  })
+                }
+              });
+            }
+          });
+          this.tableData = s.data.configs.filter(config => config.key !== 'script');
+          this.maxOrder = s.data.maxOrder ? s.data.maxOrder + 1 : 0;
+
+          this.publishPath = s.data.detailData.publishUrl;
+
+          this.$nextTick(() => {
+            // this.iFrameLoad(this.iFrameShow);
+            this.iFrameLoad(() => {
+              this.chartPreview = previewoptions;
+              this.interfaceScriptSave(previewoptions['script']);
+            })
+          });
+        });
+      } else {
+        this.interfaceEmpty();
+      }
+    },
+    /* @method 下拉数据 */
+    interfaceSelect () {
+      this.$axios.post('/interface/selectData', '', s => {
+        this.pathType = s.pathTypes;
+        // this.valueName = s.valueNames;
+
+        this.valueType = s.valueTypes;
+        s.logins.unshift({
+          name: '不需要登录',
+          value: ''
+        });
+        this.logins = s.logins;
+      });
+    },
+    /* @method 清除现有数据 */
+    interfaceEmpty () {
+      this.detailData = {
+        id: '',
+        chartName: '',
+        targetUrl: 'http://www.wosoo.net:18087/tailor/wisemotion/interface/06eab9c2-73df-11ea-8f9f-525400a05fe3/',
+        autoLoginId: '',
+        remark: '06eab9c2-73df-11ea-8f9f-525400a05fe3',
+        convertScript: '',
+        type: '2'
+      };
+      this.createData = {
+        createdTime: '',
+        createUser: ''
+      };
+      this.status = {
+        isPublished: 0,
+        isEnable: 0,
+        status: 0
+      };
+      // this.tableData = [];
+      ['1', '2', '3', '5', '6'].includes(this.confType) && (this.tableData = optionCells());
+      ['6'].includes(this.confType) && (this.tableData = (() => {
+        return [{
+          'customScript': '',
+          'elementAttributeName': 0,
+          'elementPath': '',
+          'elementPathType': 0,
+          'isCustom': 0,
+          'subOrder': 1,
+          'valueSaveAsType': 0,
+          'valueSaveToKey': 'cards',
+          'isRequired': 1
+        }]
+      })());
+      this.bugInfo = {
+        bugDescription: '',
+        bugStatus: ''
+      }
+    },
+    /* @event 新增一行 */
+    addRow () {
+      console.log(this.maxOrder);
+      if (['6'].includes(this.confType)) {
+        return this.tableData.push({
+          'customScript': '',
+          'elementAttributeName': 0,
+          'elementPath': '',
+          'elementPathType': 0,
+          'isCustom': 0,
+          'subOrder': 1,
+          'valueSaveAsType': 0,
+          'valueSaveToKey': 'cards',
+          'isRequired': 0
+        })
+      };
+      this.tableData.push({
+        customScript: '',
+        elementAttributeName: 0,
+        elementPath: '',
+        elementPathType: 0,
+        isCustom: 0,
+        subOrder: this.maxOrder++,
+        valueSaveAsType: 0,
+        valueSaveToKey: ''
+      });
+    },
+    /* @event 删除当前行 */
+    deleteRow (item, scope) {
+      if (!item.hasOwnProperty('parentIndex')) {
+        // 第一级
+        this.tableData.splice(this.tableData.findIndex(first => item.valueSaveToKey === first.valueSaveToKey), 1);
+      } else {
+        if (!item.hasOwnProperty('isLast')) {
+          // 第二级
+          this.tableData.forEach((first, i) => {
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j, secondArr) => {
+                item.subOrder === second.subOrder ? secondArr.splice(j, 1) : '';
+              })
+            }
+          });
+        } else {
+          // 第三级
+          this.tableData.forEach((first, i) => {
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j) => {
+                if (second.hasOwnProperty('children')) {
+                  second.children.forEach((third, z, thirdArr) => {
+                    item.subOrder === third.subOrder ? thirdArr.splice(z, 1) : '';
+                  })
+                }
+              })
+            }
+          });
+        }
+      }
+    },
+    /* 新增下级 */
+    addChildren (i, item) {
+      console.log(this.maxOrder);
+      let obj = {
+        parentIndex: item.subOrder,
+        customScript: '',
+        elementAttributeName: 0,
+        elementPath: '',
+        elementPathType: 0,
+        isCustom: 0,
+        subOrder: this.maxOrder++,
+        valueSaveAsType: 0,
+        valueSaveToKey: ''
+      };
+      if (item.hasOwnProperty('parentIndex')) {
+        obj.isLast = true;
+      }
+      if (item.hasOwnProperty('children')) {
+        item.children.push(obj)
+      } else {
+        this.$set(item, 'children', [obj]);
+      }
+    },
+    /* @method 自定义接口 */
+    changeCustom (val, row) {
+      console.log(val, row);
+    },
+    getPath (name, item) {
+      console.log(name, item);
+      this.currentTag = {};
+      this.parentTag = [];
+      this.childTag = [];
+      if (!this.detailData.targetUrl) {
+        this.$message.warning('请先输入数据接口URL')
+      } else {
+        this.isSelect = name;
+        this.currentOrder = item.subOrder;
+        this.pickObjectPath(item.valueSaveToKey)
+      }
+    },
+    blankClick: function (e) {
+      window.selectMask.remove();
+    },
+    /* @event 删除事件 */
+    deleteClick () {
+      this.$confirm('确认删除当前接口？', '提示', {
+        distinguishCancelAndClose: true,
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+      }).then(() => {
+        let data = new URLSearchParams();
+        data.append('id', this.detailData.id);
+        this.$axios.post('/chart/delete', data, s => {
+          this.$message.success('删除成功！');
+          this.$emit('update-list', true);
+          this.$router.push('/developer/charts');
+        });
+      }).catch(() => {});
+    },
+    /* @event 接口发布 */
+    interfacePublish () {
+      let data = new URLSearchParams();
+      data.append('id', this.$route.query.id || '');
+      data.append('isPublish', this.status.isPublished ? 0 : 1);
+      this.$axios.post('/chart/publish', data, s => {
+        this.$message.success(s.message);
+        this.interfaceDetail();
+      });
+    },
+    /* @event 启用禁用修改 */
+    changeEnable (isEnable) {
+      let data = new URLSearchParams();
+      data.append('id', this.$route.query.id);
+      data.append('isEnable', isEnable);
+      this.$axios.post('/chart/enable', data, s => {
+        this.interfaceDetail();
+      });
+    },
+    /* @event 接口测试 */
+    interfaceTest () {
+      this.testLoading = true;
+      this.interfaceSave(() => {
+        // let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/testrun?id=' + this.detailData.id + '&type=0 ';
+        let paths = this.baseConfig.BASE_URL + '/chart/testChart?id=' + this.detailData.id;
+
+        axios.post(paths).then((res) => {
+          this.jsonString = JSON.stringify(res.data, null, 4);
+          this.jsonVisible = true;
+          this.testLoading = false;
+        });
+      });
+    },
+    /* @event 保存接口script */
+    interfaceScriptSave (s) {
+      this.detailData['convertScript'] = s;
+    },
+    /* @event 保存接口 */
+    interfaceSave (fun) {
+      console.log(this.detailData);
+      let data = new URLSearchParams();
+      this.detailData.type = this.confType;
+      let {targetUrl: apiUrl} = this.detailData;
+      data.append('apiUrl', apiUrl)
+      for (let key in this.detailData) {
+        if (typeof this.detailData[key] !== 'object') {
+          data.append(key, this.detailData[key])
+        }
+      }
+
+      //console.log(this.tableData);
+      let sub = -1;
+      this.tableData.forEach((first, i, arr) => {
+        sub += 1;
+
+        let fOrder = sub;
+        let {elementPath: value, valueSaveToKey: key} = first;
+        first = Object.assign(first, {key, value})
+        for (let f in first) {
+          if (f !== 'subOrder' && f !== 'children') {
+            data.append('interfaceList[' + sub + '].' + f, first[f]);
+          }
+        }
+        if (first.hasOwnProperty('children') && first.children.length > 0) {
+          first.children.forEach((second) => {
+            sub += 1;
+
+            let sOrder = sub;
+            let {elementPath: value, valueSaveToKey: key} = second;
+            second = Object.assign(second, {key, value})
+            data.append('interfaceList[' + sub + '].parentIndex', fOrder);
+            for (let s in second) {
+              if (s !== 'subOrder' && s !== 'parentIndex' && s !== 'children') {
+                data.append('interfaceList[' + sub + '].' + s, second[s]);
+              }
+            }
+
+            if (second.hasOwnProperty('children') && second.children.length > 0) {
+              second.children.forEach((third) => {
+                sub += 1;
+
+                let {elementPath: value, valueSaveToKey: key} = third;
+                third = Object.assign(third, {key, value})
+                data.append('interfaceList[' + sub + '].parentIndex', sOrder);
+                for (let t in third) {
+                  if (t !== 'subOrder' && t !== 'parentIndex' && t !== 'children' && t !== 'isLast') {
+                    data.append('interfaceList[' + sub + '].' + t, third[t]);
+                  }
+                }
+              })
+            }
+          });
+        }
+      });
+      if (this.canSave) {
+        this.canSave = false;
+        this.$axios.post('/chart/save', data, s => {
+          this.detailData.id = s.data.id;
+          typeof fun === 'object' ? this.$message.success(s.message) : fun();
+          this.$emit('update-list', true);
+          this.$router.push({path: '/project/charts/' + s.data.type, query: {id: s.data.id}});
+          this.canSave = true;
+        }, f => {
+          this.canSave = true;
+        });
+      }
+    },
+    /* @event 提交bug点击事件 */
+    bugClick () {
+      this.bugVisible = true;
+    },
+    /* @event 关闭bug点击事件 */
+    closeClick () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      this.$axios.post('/chart/closeBug', data, s => {
+        this.bugInfo.bugStatus = 1;
+      });
+    },
+    /* @method 提交bug */
+    reportBug () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      data.append('description', this.bugInfo.bugDescription);
+      this.$axios.post('/chart/reportBug', data, s => {
+        this.bugInfo.bugStatus = 0;
+        this.bugVisible = false;
+      });
+    },
+    /* @method iframe加载 */
+    iFrameLoad (fun) {
+      this.loginLoading = false;
+      this.displayFieldPath = '';
+      let paths = this.detailData.targetUrl;
+      let data = new URLSearchParams();
+      axios.get(paths, data).then((res) => {
+        this.cookJson = res.data;
+        this.loginLoading = true;
+        typeof fun === 'object' ? this.$message.success('数据加载成功') : fun();
+      });
+    },
+    /* @function iframe页面绑定鼠标移动事件 */
+    mouseEvent (e) {
+      e.preventDefault();
+      let event = e || window.event,
+        target = event.target;
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+
+      if (this.isSelect || this.isSelect === 0) {
+        this.setMark('mark', eleWidth, eleHeight, offsetX, offsetY);
+        this.setTips(offsetX, offsetY, target, event.clientX, event.clientY);
+      }
+    },
+    /* @function 阻止iframe页面默认点击事件 */
+    preventClick (e) {
+      e.preventDefault();
+    },
+    /* @function 设置遮罩层样式
+    * @param {String} name —— 选中元素对应mark种类 [mark/other]
+    * @param {Number||String} width —— 选中元素的宽度
+    * @param {Number||String} height —— 选中元素的高度
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值 */
+    setMark (name, width, height, left, top) {
+      let style = {
+        'width': width + 'px',
+        'height': height + 'px',
+        'left': left + 'px',
+        'top': top + 'px'
+      }
+      for (let k in style) {
+        this.$refs[name].style[k] = style[k];
+      }
+    },
+    /* @function 设置标签样式
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值
+    * @param {DOM} target —— 选中元素
+    * @param {Number||String} moveX —— 当前鼠标 X 轴上的值
+    * @param {Number||String} moveY —— 当前鼠标 Y 轴上的值 */
+    setTips (left, top, target, moveX, moveY) {
+      this.currentTag = this.nodeParams(target);
+
+      this.parentTag = this.parentNode(target, 3);
+      this.childTag = this.childNode(target, 3);
+
+      this.$nextTick(() => {
+        let tipHalfOffsetWidth = this.$refs.tips.offsetWidth / 2;
+        let tipOffsetHeight = this.$refs.tips.offsetHeight;
+        let boxHeight = this.$refs.box.offsetHeight;
+        let eleWidth = target.offsetWidth * scaleRatio,
+          eleHeight = target.offsetHeight * scaleRatio;
+
+        if (this.maxIFrameWidth === 0) {
+          left += 2;
+        } else {
+          if (moveX - tipHalfOffsetWidth * 2 < 0) {
+            left = 2;
+          } else {
+            if (moveX + tipHalfOffsetWidth * 2 > this.maxIFrameWidth) {
+              left = this.maxIFrameWidth - tipHalfOffsetWidth * 2 - 2;
+            } else {
+              left = moveX - tipHalfOffsetWidth;
+            }
+          }
+        }
+
+        if (tipOffsetHeight > top) {
+          if (eleHeight > tipOffsetHeight * 3) {
+            top += 8;
+          } else {
+            top = top + eleHeight;
+          }
+        } else {
+          top = top - tipOffsetHeight;
+        }
+
+        let style = {
+          'left': left + 'px',
+          'top': top + 'px'
+        };
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+        }
+      });
+    },
+    /* @function 查询父级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    parentNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.parentElement) {
+          let parentDom = target.parentElement;
+          let parent = this.nodeParams(target.parentElement);
+          arr.unshift(parent);
+          if (parentDom.parentElement) {
+            target = parentDom;
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询子级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    childNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.children && target.children.length > 0 && target.children[0].nodeName.toLowerCase() !== 'script') {
+          let childDom = target.children[0];
+          let child = this.nodeParams(target.children[0]);
+          arr.push(child);
+          if (childDom.children && childDom.children.length > 0 && childDom.children[0].nodeName.toLowerCase() !== 'script') {
+            target = target.children[0];
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询节点元素的属性及参数
+    * @param {DOM} target —— 当前需要查询的节点元素 */
+    nodeParams (target) {
+      let tag = {
+        tag: target,
+        tagName: target.nodeName.toLowerCase(),
+        idName: target.id === '' ? '' : '#' + target.id,
+        className: target.className === '' ? '' : '.' + target.className,
+        sPath: this.utils.getTopParentPath(target)
+      };
+
+      if (target.getAttribute('href')) {
+        tag.attributeName = 'href';
+        tag.attributeValue = target.getAttribute('href');
+      } else if (target.getAttribute('src')) {
+        tag.attributeName = 'src';
+        tag.attributeValue = target.getAttribute('src');
+      }
+
+      return tag
+    },
+    /* @function hover选中的元素的遮罩
+    * @param {DOM} target —— hover选中的元素  */
+    nodeMark (target) {
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+      this.setMark('other', eleWidth, eleHeight, offsetX, offsetY);
+    },
+    /* @event 确认选中路径（多选框点击）
+    * @param {Boolean} val —— 当前点击多选框对应的boolean值
+    * @param {Object} item —— 当前点击多选框对应的路径对象 */
+    selectClick (val, item) {
+      if (val) {
+        console.log('path--result', val)
+        const cardsSubText = val.slice(4);
+        this.pageVisible = false;
+        this.tagSelected = false;
+        if (this.confType === '6') {
+          this.tableData.forEach((first, i) => {
+            this.confFiled === first.valueSaveToKey ? (first.elementPath = this.jsonCheckedValue, this.confFiled = ['cards', cardsSubText].join('-'), first.valueSaveToKey = ['cards', cardsSubText].join('-')) : '';
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j) => {
+                this.confFiled === second.valueSaveToKey ? (second.elementPath = this.jsonCheckedValue, this.confFiled = ['cards', cardsSubText].join('-'), second.valueSaveToKey = ['cards', cardsSubText].join('-')) : '';
+                if (second.hasOwnProperty('children')) {
+                  second.children.forEach((third, z) => {
+                    this.confFiled === third.valueSaveToKey ? (third.elementPath = this.jsonCheckedValue, this.confFiled = ['cards', cardsSubText].join('-'), third.valueSaveToKey = ['cards', cardsSubText].join('-')) : '';
+                  })
+                }
+              })
+            }
+          });
+        } else {
+          this.tableData.forEach((first, i) => {
+            this.confFiled === first.valueSaveToKey ? first.elementPath = this.jsonCheckedValue : '';
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j) => {
+                this.confFiled === first.valueSaveToKey ? second.elementPath = this.jsonCheckedValue : '';
+                if (second.hasOwnProperty('children')) {
+                  second.children.forEach((third, z) => {
+                    this.confFiled === first.valueSaveToKey ? third.elementPath = this.jsonCheckedValue : '';
+                  })
+                }
+              })
+            }
+          });
+        }
+
+        //this.tableData[this.isSelect].elementPath = this.sPath;
+        this.chartPreview[this.confFiled] = this.jsonCheckedValue;
+      }
+    },
+    /* @function iframe 选中事件  */
+    iFrameShow () {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+
+      this.parentNodeX = this.utils.getAbsolutelyPosition(iFrame.parentNode).left * scaleRatio;
+      this.parentNodeY = this.utils.getAbsolutelyPosition(iFrame.parentNode).top * scaleRatio;
+
+      this.iFrameRemove();
+
+      iDoc.addEventListener('mousemove', this.mouseEvent, false);
+      iDoc.addEventListener('click', this.preventClick);
+    },
+    /* @function iframe 事件移除 */
+    iFrameRemove () {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      iDoc.removeEventListener('mousemove', this.mouseEvent, false);
+      iDoc.removeEventListener('click', this.preventClick, false);
+    }
+
+  },
+  mounted () {
+
+  },
+  //生命周期 - 销毁完成
+  destroyed () {
+  }
+}
+</script>

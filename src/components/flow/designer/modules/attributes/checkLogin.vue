@@ -1,0 +1,145 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">验证登录节点</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="判断类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.isCustom"
+                 active-text="是否自定义"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <a-form-item label="会话"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.uploadSession"
+                 active-text="是否上传"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <a-form-item label="验证地址"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder=""
+               :value="currentSelect.url"
+               @change="urlChange" />
+    </a-form-item>
+    <a-form-item label="加载时间"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-input placeholder=""
+               v-model.number="currentSelect.loadTime"
+               @change="loadTimeChange" />
+    </a-form-item>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="验证位置"
+                   v-if="!currentSelect.isCustom"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <a-input style="width: 80%"
+                 placeholder=""
+                 :value="currentSelect.elementPath"
+                 @change="nodePathChange" />
+        <a-icon style="width: 20%;fontSize:16px;"
+                type="fullscreen-exit"
+                @click="getPath" />
+      </a-form-item>
+    </transition>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="验证内容"
+                   v-if="!currentSelect.isCustom"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <a-input placeholder=""
+                 :value="currentSelect.contain"
+                 @change="containChange" />
+      </a-form-item>
+      <a-form-item label="截图"
+                   v-if="false"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <a-input placeholder=""
+                 :value="currentSelect.screenShot"
+                 @change="screenShotChange" />
+      </a-form-item>
+    </transition>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="代码"
+                   v-if="currentSelect.isCustom"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <a-textarea placeholder="输入自定义代码"
+                    :rows="3"
+                    :value="currentSelect.script"
+                    @change="codeChange"
+                    style="height:80px" />
+      </a-form-item>
+    </transition>
+  </a-form>
+</template>
+
+<script>
+export default {
+  name: 'checkLogin',
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath', 'processAttrChange'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    urlChange (e) {
+      console.log('checkLogin-url', e)
+      let url = e.target ? e.target.value : e
+      this.nodeAttrChange({ attr: 'url', payload: url })
+      this.processAttrChange({ attr: 'url', payload: url })
+    },
+    loadTimeChange (e) {
+      //v-model.number
+      this.nodeAttrChange({ attr: 'loadTime', payload: e.target.value })
+    },
+    containChange (e) {
+      this.nodeAttrChange({ attr: 'contain', payload: e.target.value })
+    },
+    nodePathChange (e) {
+      this.nodeAttrChange({ attr: 'elementPath', payload: e.target.value })
+    },
+    codeChange (e) {
+      this.nodeAttrChange({ attr: 'script', payload: e.target.value })
+    },
+    screenShotChange (e) {
+      this.nodeAttrChange({ attr: 'screenShot', payload: e.target.value })
+    },
+    getPath () {
+      this.processGetPath(this.currentSelect.id, this.currentSelect)
+    }
+  },
+  mounted () {
+    window._wmGetSelectWndUrlCallback = this.urlChange;
+    /*//获取当前选择窗口url
+      function _wmGetSelectWndUrl (geted_url_callback)*/
+  }
+}
+</script>

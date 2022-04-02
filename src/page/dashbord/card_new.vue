@@ -1,0 +1,481 @@
+<template>
+  <div class="showcase flex-column" v-loading="loading">
+    <div class="showcase-header flex">
+      <p class="showcase-header-logo"></p>
+      <svg class="showcase-header-svg"
+        xmlns='http://www.w3.org/2000/svg'
+        viewBox='0 0 90 90'>
+        <path d='M0 90 Q45 90 45 45 Q45 0 90 0 L90 90 L0 90 Z' />
+      </svg>
+      <div class="showcase-header-control box-flex">
+        <el-button type="success" round @click="jumpHome">首页</el-button>
+        <div class="card-control">
+          <i @click="showcaseMove('l')"
+             :class="['el-icon-arrow-left', {active: currentMax > pageSize}]"></i>
+          <span>当前总数量: {{total}}</span>
+          <i @click="showcaseMove('r')"
+             :class="['el-icon-arrow-right', {active: total > currentMax}]"></i>
+        </div>
+      </div>
+    </div>
+    <div class="showcase-content box-flex">
+      <ul ref="box" class="showcase-content-list" :style="`margin-left: ${moveDistance}px`">
+        <li class="card-cluster" v-for="(item, i) in cardData" :key="i">
+          <div class="card-cluster-title">
+            <i class="terminal"></i>
+            <span>{{ item.title }}</span>
+          </div>
+          <div class="card-cluster-content">
+            <div class="card-cluster-item" v-for="(ele, j) in item.items" :key="j">
+              <div class="element-header space-between" :class="`status-${ele.type}`" @click="elementJump(ele)">
+                <p :class="['element-header-text']">{{ elementType(ele.type) }}</p>
+              </div>
+              <template v-if="ele.type !== 3">
+                <el-image v-if="ele.type === 1 && ele.status === 0" :src="`${$axios.downUrl()}/${ele.img2}`" fit="fill"></el-image>
+                <el-image v-else :src="ele.img1 ? `${$axios.downUrl()}/${ele.img1}` : ''" fit="fill"></el-image>
+              </template>
+              <p class="element-title">
+                {{ elementType(ele.type) }}名称：{{ ele.name }}
+              </p>
+              <div v-if="[1, 3].includes(ele.type)" class="element-title align-center">
+                <p class="half">{{ elementType(ele.type) }}状态：{{  elementStatus(ele) }}</p>
+                <p class="half" v-if="ele.type === 1">
+                  操作按钮：
+                  <el-button @click="loginClick(ele)" v-if="ele.type === 1 && ele.status" size="mini" type="success" round>点击登录</el-button>
+                  <el-button @click="enterClick(ele)" v-else size="mini" type="success" round>进入系统</el-button>
+                </p>
+                <p class="half" v-else-if="ele.type === 3 && ele.status">
+                  操作按钮：
+                  <el-button v-if="ele.status == 1"
+                             @click.native.prevent="taskRun(ele)"
+                             size="mini" type="success" round>
+                    运行
+                  </el-button>
+                  <el-button v-if="ele.status == 4"
+                             @click.native.prevent="taskRun(ele)"
+                             size="mini" type="success" round>
+                    重新运行
+                  </el-button>
+                  <el-button v-if="ele.status == 2"
+                             @click.native.prevent="taskRun(ele)"
+                             type="warning"
+                             size="small">
+                    暂停
+                  </el-button>
+                  <el-button v-if="ele.status == 3"
+                             @click.native.prevent="taskRun(ele)"
+                             type="warning"
+                             size="small">
+                    继续
+                  </el-button>
+                </p>
+              </div>
+              <p class="element-title half" v-if="[0, 2].includes(ele.type)">
+                操作按钮：
+                <el-button @click="interfaceTest(ele)"  size="mini" type="success" round>点击运行</el-button>
+              </p>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!--processTestResult-->
+    <el-dialog top="0"
+               title="测试结果"
+               custom-class="json-box"
+               :visible.sync="jsonVisible">
+      <pre slot="footer">{{ jsonString }}</pre>
+    </el-dialog>
+    <!--processTestTable-->
+    <el-dialog top="0"
+               ref="processTestTable"
+               title="测试参数"
+               custom-class="enter-code"
+               width="700px"
+               :visible.sync="TVisible">
+      <div class="TjVisible-info">
+        <el-table :data="processTestTableData"
+                  style="width: 100%">
+          <el-table-column prop="tit"
+                           label="参数名"
+                           width="180">
+          </el-table-column>
+          <!--<el-table-column prop="type"-->
+          <!--label="参数类型"-->
+          <!--width="180">-->
+          <!--</el-table-column>-->
+          <el-table-column label="值">
+            <template slot-scope="scope">
+              <el-input v-model="scope.row.val"></el-input>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div slot="footer">
+        <el-button type="primary"
+                   @click="processTestRun(curTestRow)">测试</el-button>
+        <el-button @click="processClearData">清空内容</el-button>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      title="选择需要重新运行的数据"
+      :visible.sync="rerunVisible"
+      width="550px"
+      top="10%"
+      custom-class="dialog-type"
+      :before-close="rerunClose">
+      <ul class="dialog-type-box">
+        <li>
+          <p :class="['dialog-type-icon', {active: rerunType === 'all'}]" @click="rerunTypeSelect('all')">
+            <i class="icon icon-all"></i>
+          </p>
+          <p class="dialog-type-name">全部数据</p>
+        </li>
+        <li>
+          <p :class="['dialog-type-icon', {active: rerunType === 'fail'}]" @click="rerunTypeSelect('fail')">
+            <i class="icon icon-fail"></i>
+          </p>
+          <p class="dialog-type-name">失败数据</p>
+        </li>
+      </ul>
+      <span slot="footer" class="dialog-footer">
+        <el-button :type="rerunType ? 'primary' : ''" @click="rerunSubmit">下一步</el-button>
+      </span>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'card_new',
+  data () {
+    return {
+      loading: false,
+      pageSize: 4,
+      currentMax: 0,
+      moveDistance: 0,
+      cardData: [], // 卡片列表数据
+      total: 0, // 卡片总数,
+      testLoading: false,
+      TVisible: false,
+      processTestTableData: [],
+      curTestRow: {},
+      jsonString: '',
+      jsonVisible: false,
+      rerunVisible: false,
+      rerunType: '',
+      rerunId: 0
+    }
+  },
+  created () {
+    this.cardRequest();
+  },
+  mounted () {
+
+  },
+  methods: {
+    /* @event 跳转首页 */
+    jumpHome () {
+      this.$router.push('/project/home');
+    },
+    /* @event 移动 */
+    showcaseMove (type) {
+      let moveNum = 0;
+      if (type === 'l') {
+        if (this.currentMax > this.pageSize) {
+          if (this.currentMax - this.pageSize >= this.pageSize) {
+            this.currentMax -= this.pageSize;
+            moveNum = this.currentMax - this.pageSize;
+          } else {
+            this.currentMax = this.pageSize;
+            moveNum = 0;
+          }
+          moveNum = this.currentMax - this.pageSize;
+        } else {
+          return;
+        }
+      }
+      if (type === 'r') {
+        if (this.total > this.currentMax) {
+          if (this.total - this.currentMax >= this.pageSize) {
+            moveNum = this.currentMax;
+            this.currentMax += this.pageSize;
+          } else {
+            this.currentMax = this.total;
+            moveNum = this.total - this.pageSize;
+          }
+        } else {
+          return;
+        }
+      }
+      this.$nextTick(() => {
+        this.moveDistance = -moveNum * (this.$refs.box.offsetWidth / 4);
+      });
+    },
+    /* @method 卡片列表数据请求 */
+    cardRequest () {
+      this.loading = true;
+      let data = new URLSearchParams();
+      data.append('status', 1);
+      this.$axios.get('/card/list', data, s => {
+        this.cardData = s.data;
+        this.total = s.data.length;
+        if (this.total >= this.pageSize) {
+          this.currentMax = this.pageSize;
+        } else {
+          this.currentMax = this.total;
+        }
+        this.loading = false;
+      });
+    },
+    /* @event 元素跳转 */
+    elementJump (item) {
+      if (item.type === 3) {
+        this.$router.push({
+          path: '/developer/task',
+          query: {
+            keyword: item.name
+          }
+        });
+      } else {
+        this.$router.push({
+          path: item.type === 1 ? '/project/login' : '/project/process',
+          query: {
+            id: item.id
+          }
+        });
+      }
+    },
+    /* @filter 元素类型 */
+    elementType (type) {
+      let typeData = [
+        {name: '流程', type: 0},
+        {name: '登录', type: 1},
+        {name: '接口', type: 2},
+        {name: '任务', type: 3}
+      ];
+      return typeData.filter(item => item.type === type)[0].name;
+    },
+    /* @@filter 元素状态 */
+    elementStatus (item) {
+      let status = '';
+      switch (item.type) {
+        case 1: // 登录
+          status = item.status ? '未登录' : '已登录';
+          break;
+        case 3: // 任务
+          switch (item.status) {
+            case 0:
+              status = '无数据';
+              break;
+            case 1:
+              status = '未开始';
+              break;
+            case 2:
+              status = '执行中';
+              break;
+            case 3:
+              status = '暂停';
+              break;
+            case 4:
+              status = '结束';
+              break;
+            default:
+              break;
+          }
+          break;
+        default:
+          break;
+      }
+      return status;
+    },
+    /* @event 开始/继续执行 */
+    taskRun (item) {
+      let data = new URLSearchParams();
+      switch (item.status) {
+        case 2:
+          data.append('id', item.id);
+          this.$axios.post('/task/pause', data, s => {
+            this.$message.success('暂停执行！');
+            this.cardRequest();
+          });
+          break;
+        case 4:
+          this.rerunType = '';
+          this.rerunId = item.id;
+          this.rerunVisible = true;
+          break;
+        default:
+          data.append('id', item.id);
+          this.$axios.post('/task/run', data, s => {
+            this.$message.success('开始执行！');
+            this.cardRequest();
+          });
+          break;
+      }
+    },
+    /* @event 点击登录 */
+    loginClick (row) {
+      this.interfaceTest(row)
+    },
+    /* @event 点击进入 */
+    enterClick (row) {
+      this.loginProcessValidate(row)
+    },
+    /* @event 登录验证测试*/
+    loginProcessValidate (row) {
+      let data = new URLSearchParams();
+      data.append('id', row.id)
+      this.$axios.get('/process/loginValid', data, r => {
+        console.log(r.status)
+        let noticeMsg = [row.name, '当前会话'];
+        if (Number(r.status) === 0) {
+          noticeMsg.push('有效')
+          this.$message.success(noticeMsg.join(''))
+        } else {
+          noticeMsg.push('失效')
+          this.$message.warning(noticeMsg.join(''))
+          row.status = 1;
+        }
+      }, e => {
+        this.$message.warning({
+          message: '失效',
+          center: true
+        })
+      })
+    },
+    /* @event 接口测试数据清空 */
+    processClearData () {
+      this.interfaceTest(this.curTestRow);
+    },
+    /* @event 接口测试结果 */
+    processTestRun (row) {
+      let datarun = new URLSearchParams();
+      let wmRedirectUrlList = [];
+      let wmRedirectUrl = '';
+      for (var p in this.processTestTableData) { //遍历json数组时，这么写p为索引，0,1
+        if (this.processTestTableData[p].isUrl) {
+          (wmRedirectUrl = this.processTestTableData[p].val);
+        } else {
+          wmRedirectUrlList.push(`${this.processTestTableData[p].tit}={${this.processTestTableData[p].tit}}`);
+        }
+        this.processTestTableData[p].val && datarun.append(this.processTestTableData[p].tit, this.processTestTableData[p].val);
+      }
+      // datarun.append('wm_redirect_url', [wmRedirectUrl, `${wmRedirectUrlList.join('&')}`].join(!wmRedirectUrlList.length ? '' : /\?/.test(wmRedirectUrl) ? '&' : '?'));
+      this.TVisible = false;
+      this.testLoading = true;
+      let paths = '/process/test?id=' + row.id;
+      this.$axios.post(paths, datarun, (res) => {
+        this.jsonString = res.data ? JSON.stringify(res.data, null, 4) : JSON.stringify(res, null, 4);
+        this.jsonVisible = true;
+        this.testLoading = false;
+      }, f => {
+        this.testLoading = false;
+      });
+    },
+    async FlowDetail (id) {
+      let data = new URLSearchParams();
+      data.append('id', id);
+      return new Promise((resolve, reject) => {
+        this.$axios.post('/process/detail', data, r => {
+          resolve(JSON.parse(r.data.sendData))
+        }, f => {
+
+        })
+      })
+    },
+    /* @event 接口测试 */
+    async interfaceTest (row) {
+      this.processTestTableData = [];
+      !row.flowData && (row.flowData = await this.FlowDetail(row.id));
+      this.curTestRow = row;
+      let startNode = row.flowData.nodeList.find(node => node.type === 'start');
+      if (startNode) {
+        try {
+          let urlParam = startNode.urlVarName;
+          let variable = startNode.variable;
+          if (urlParam) {
+            this.processTestTableData.push({
+              tit: urlParam,
+              isUrl: 1,
+              val: ''
+            });
+          }
+          if (variable) {
+            Reflect.ownKeys(JSON.parse(variable)).forEach(paramKey => {
+              this.processTestTableData.push({
+                tit: paramKey,
+                val: ''
+              });
+            })
+          }
+        } catch (e) {
+          this.$message.error(e.message)
+          return false
+        }
+      }
+
+      if (this.processTestTableData.length) {
+        this.TVisible = true;
+        return false;
+      }
+      this.testLoading = true;
+      /*let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/testrun?id=' + this.detailData.id + '&type=0 ';
+      axios.post(paths).then((res) => {
+        this.jsonString = JSON.stringify(res.data, null, 4);
+        this.jsonVisible = true;
+        this.testLoading = false;
+      });*/
+      /*wisemotion deliver to exeactors*/
+      let paths = '/process/test?id=' + row.id;
+      this.$axios.get(paths, '', (res) => {
+        this.jsonString = res.data ? JSON.stringify(res.data, null, 4) : JSON.stringify(res, null, 4);
+        this.jsonVisible = true;
+        this.testLoading = false;
+        // row.type === 1 && (row.status = 0)
+        this.cardRequest();
+      }, f => {
+        this.testLoading = false;
+      });
+    },
+    rerunClose (done) {
+      this.rerunVisible = false
+    },
+    /* @event 重新运行种类选择 */
+    rerunTypeSelect (type) {
+      this.rerunType = type;
+    },
+    /* @event 重新运行 */
+    rerunSubmit () {
+      if (this.rerunType) {
+        let data = new URLSearchParams();
+        data.append('id', this.rerunId);
+        if (this.rerunType === 'all') {
+          this.$axios.post('/task/cancel', data, s => {
+            this.$axios.post('/task/run', data, s => {
+              this.$message.success('开始执行！');
+              this.interfaceList();
+              this.rerunVisible = false;
+            });
+          });
+        } else {
+          this.$axios.get('/task/retry', data, s => {
+            this.$message.success('开始执行！');
+            this.interfaceList();
+            this.rerunVisible = false;
+          });
+        }
+      } else {
+        this.$message({
+          showClose: true,
+          duration: 2000,
+          type: 'warning',
+          message: '请选择重新运行的数据，再进行下一步'
+        });
+      }
+    }
+  }
+}
+</script>

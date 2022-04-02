@@ -1,0 +1,53 @@
+<template>
+  <div v-if="node.type == 'varAssignment'"
+       :id="node.id"
+       class="common-rectangle-node"
+       :class="{ active: isActive() }"
+       :style="{ top: node.y + 'px', left: node.x + 'px',
+        cursor: currentTool.type == 'drag' ? 'move' : (currentTool.type == 'connection' ? 'crosshair' :
+                                                    (currentTool.type == 'zoom-in' ? 'zoom-in' :
+                                                    (currentTool.type == 'zoom-out' ? 'zoom-out' : 'default'))) }"
+       @click.stop="selectNode"
+       @contextmenu.stop="showNodeContextMenu">
+    <div class="node-title">
+      <a-icon type="user"
+              class="node-icon" />
+      {{ node.nodeName }}
+    </div>
+    <div class="node-info"> 拷贝
+      <el-switch v-model="node.isClone"
+                 active-color="#0487fe"
+                 inactive-color="#ccd0d3"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'varAssignment',
+  data () {
+    return {
+      showimg: false
+    }
+  },
+  props: [
+    'node',
+    'currentTool'
+  ],
+  inject: ['registerNode', 'selectNode', 'showNodeContextMenu', 'isActive'],
+  mounted () {
+    // this.registerNode();
+  },
+  methods: {
+    nodeChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    ContextMenu (e) {
+      this.showNodeContextMenu(e);
+    }
+  }
+}
+</script>

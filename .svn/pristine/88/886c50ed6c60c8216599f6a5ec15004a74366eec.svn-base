@@ -1,0 +1,100 @@
+a, a:link{
+  text-decoration:none;
+  color: $fontColor;
+}
+
+// float and clear float (浮动)
+.lf{
+  float: left;
+}
+.rt{
+  float: right;
+}
+.clear-both{
+  zoom: 1;
+}
+.clear-both:after{
+  content: "";
+  clear: both;
+  font-size: 0;
+  height: 0;
+  display: block;
+  visibility: hidden;
+}
+
+// text (文字)
+.left {
+  text-align: left;
+}
+.right {
+  text-align: right;
+}
+.center {
+  text-align: center;
+}
+
+// flex
+.flex {
+  display: flex;
+}
+.align-center {
+  display: flex;
+  align-items: center;
+}
+.space-between {
+  display: flex;
+  justify-content: space-between;
+}
+.space-around {
+  display: flex;
+  justify-content: space-around;
+}
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+.flex-wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+.box-flex {
+  @include box-flex();
+  overflow: hidden;
+  position: relative;
+}
+.box-flex-2 {
+  @include box-flex(2);
+  overflow: hidden;
+  position: relative;
+}
+
+// cursor (光标)
+.pointer {
+  cursor: pointer;
+}
+
+// divide from the middle （等分）
+.fill-all {
+  @include widthAndHeight(100%);
+}
+.half{
+  width: 50%;
+}
+.third{
+  width: 33.33%;
+}
+.two-third {
+  width: 66.66%;
+}
+.quarter{
+  width: 25%;
+}
+.fifth{
+  width: 20%;
+}
+
+// visual effect （动效）
+// 高度折叠过渡
+.height-transition {
+  transition: height .3s ease-in-out,padding-top .3s ease-in-out,padding-bottom .3s ease-in-out;
+}

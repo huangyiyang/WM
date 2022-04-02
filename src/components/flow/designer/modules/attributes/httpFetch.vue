@@ -1,0 +1,95 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">截屏</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="Url地址"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.url"
+               @change="urlChange" />
+    </a-form-item>
+    <a-form-item label="请求方法"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.method"
+                 inactive-text="GET"
+                 active-text="POST"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <a-form-item label="请求内容"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.content"
+               @change="contentChange" />
+    </a-form-item>
+    <a-form-item label="输出变量"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.outputVarName"
+               @change="outputVarNameChange" />
+    </a-form-item>
+    <a-form-item label="返回类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.isJson"
+                 inactive-text="不是JSON"
+                 active-text="是JSON"
+                 :active-value="true"
+                 :inactive-value="false">
+      </el-switch>
+    </a-form-item>
+  </a-form>
+</template>
+
+<script>
+export default {
+  name: 'httpFetch',
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    urlChange (e) {
+      this.nodeAttrChange({ attr: 'url', payload: e.target.value })
+    },
+    contentChange (e) {
+      this.nodeAttrChange({ attr: 'content', payload: e.target.value })
+    },
+    outputVarNameChange (e) {
+      this.nodeAttrChange({ attr: 'outputVarName', payload: e.target.value })
+    },
+    getPath () {
+      this.processGetPath(this.currentSelect.id, this.currentSelect)
+    }
+  }
+}
+</script>

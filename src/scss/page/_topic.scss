@@ -1,0 +1,283 @@
+/*专题看板*/
+$topicHeaderHeight: 80px;
+$panelAreaWidth: 24%;
+$mapAreaLeft: calc(24% + 40px);
+$mapAreaWidth: calc(52% - 80px);
+$cardsAreaHeight:17%;
+$halfAreaPanelHeight:37%;
+$trisectionAreaPanelHeight:32%;
+$panelNameFontSize: 18px;
+$panelBodyHeight: calc(100% - 30px);
+$topicBgColor: #02022d;
+$topicNameColor: #2ad5e9;
+$panelNameColor: #2cadf1;
+$infoCardNameColor: #007aff;
+$infoCardValueColor: #00d7e9;
+
+.project-topic{
+  position: fixed;
+  top: 1.8rem;
+  left: $globalMargin * 2 + $managementListWidth;
+  bottom: $bottomMargin;
+  width: $topicWidth;
+  background: $white;
+  @include radius(5px);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  @include user-select();
+  /*公共的*/
+  display: flex;
+  flex-direction: column;
+  background-color: $topicBgColor;
+
+  /*chartsColors*/
+  &.chartsColors{
+    --lineColor: #007aff;
+  }
+  /*展示页面*/
+  &.topicViews{
+    border-radius: 0px;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    width: 100%;
+  }
+
+  /*配置时基本信息*/
+  .project-module{
+    position: absolute;
+    transform: translateY(calc(-100% - 30px));
+  }
+
+  &-header{
+    height: $topicHeaderHeight;
+    margin-bottom: $globalMargin;
+    position: relative;
+    &::before{
+      content: '';
+      display: block;
+      width: 100%;
+      height: 20px;
+      position: absolute;
+      left: 0px;
+      bottom: 0px;
+      background-image: url("../static/image/topic/1/headerBg.png");
+      background-size: 100% 100%;
+    }
+  }
+  &-body{
+    flex: 1;
+    position: relative;
+  }
+
+  &-name{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+    font-weight: bold;
+    font-stretch: normal;
+    line-height: 72px;
+    letter-spacing: 2px;
+    color: $topicNameColor;
+  }
+  %panelShare{
+    //background-color: #00d7e9;
+    background-color: transparent;
+  }
+  %areaDev{
+    //background-color: #D6D6D8;
+    background-color: transparent;
+  }
+  .topic{
+    &-panel{
+      /*panel共性*/
+      width: 100%;
+      @extend %panelShare;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(4px);
+      background-image: url("../static/image/topic/1/panelBg.png");
+      background-size: 100% 100%;
+      padding: 0px 15px 15px;
+      box-sizing: border-box;
+      &:not(:nth-child(1)){
+        margin-top: $globalMargin;
+      }
+
+      /*大屏底部三分布局*/
+      &-area{
+        @extend %areaDev;
+        position: absolute;
+        top: 0px;
+        bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        &__left{
+          left: $globalMargin;
+          width: $panelAreaWidth;
+        }
+        &__center{
+          left: $mapAreaLeft;
+          width: $mapAreaWidth;
+        }
+        &__right{
+          right: $globalMargin;
+          width: $panelAreaWidth;
+        }
+      }
+
+      /*区域内panel个性*/
+      &-half{
+        //height: $halfAreaPanelHeight;
+      }
+      &-trisection{
+        //height: $trisectionAreaPanelHeight;
+      }
+
+      /*panel edit layer*/
+      &-editBox{
+        @include widthAndHeight(100%);
+        background-color: rgba($panelNameColor, 0.1);
+        border: 0.1px dashed rgba($panelNameColor, 0.6);
+        box-shadow: inset 0 0.02rem 0.618rem 0 rgba($panelNameColor, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        visibility: hidden;
+        transform: translateY(100%);
+        transition: all 0.6s ease-in-out;
+
+        &.empty,&.active{
+          visibility: visible;
+          transform: translateY(0);
+        }
+      }
+
+      /*panel inner*/
+      &-title{
+        transform: translateY(-4px);
+        height: 30px;
+        min-width: 190px;
+        max-width: 250px;
+        background-image: url("../static/image/topic/1/panelTitleBg.png");
+        background-size: 100% 100%;
+        line-height: 30px;
+        text-align: center;
+        color: $white;
+        font-size: $panelNameFontSize;
+        padding: 0px 40px;
+      }
+      &-body{
+        height: $panelBodyHeight;
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+        &.no-title{
+          height: 100%;
+        }
+      }
+      &-mask__loading{
+        @include widthAndHeight(100%);
+        .el-loading-mask{
+          background-color: rgba($panelNameColor, 0.1);
+          box-shadow: inset 0 0.02rem 0.618rem 0 rgba($panelNameColor, 0.9);
+          opacity: .6;
+        }
+      }
+      &-content{
+        @include widthAndHeight(100%);
+        position: absolute;
+        top: 0px;
+        left: 0px;
+      }
+    }
+    /*cards panel*/
+    &-cards{
+      @extend %panelShare;
+      height: $cardsAreaHeight;
+
+      &-title{
+        @include height(30px);
+        color: $panelNameColor;
+        font-size: $panelNameFontSize;
+        padding: 0px 15px;
+      }
+    }
+  }
+}
+
+/*专题自定义样式*/
+.chartsColors .wisemotion{
+    &-simpleCardGroup,&-cards{
+      @include widthAndHeight(100%);
+    }
+    &-cards{
+      display: flex;
+      flex-wrap: wrap;
+
+      .cards-cell{
+        height: 100%;
+        width: 25%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background-color: rgba($panelNameColor, 0.1);
+        border: 0.1px dashed rgba($panelNameColor, 0.6);
+        box-shadow: inset 0 0.02rem 0.218rem 0 rgba($panelNameColor, 0.9);
+        text-align: center;
+        padding: 6% 0.08rem;
+        box-sizing: border-box;
+        :not(:first-of-type){
+          margin-left: 2%;
+        }
+
+        &>p{
+          vertical-align: middle;
+        }
+        &-title{
+          font-size: 18px;
+          height: 60%;
+          color: #007aff;
+        }
+        &-num{
+          height: 40%;
+          color: #00d7e9;
+        }
+      }
+    }
+    &-simpleTable{
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+
+      tr{
+        height: 30px;
+      }
+      td,th{
+        font-size: 14px;
+        width: 25%;
+        text-align: center;
+      }
+    }
+    &-simpleTable__header{
+      height: 30px;
+      tr{
+        color: #02b5c6;
+        border-bottom: solid 0.6px #007aff;
+      }
+    }
+    &-simpleTable__body{
+      flex: 1;
+      overflow-y: auto;
+      tr{
+        color: $white;
+        &:not(:first-of-type){
+          border-top: solid 0.6px #007aff;
+        }
+      }
+    }
+  }
+

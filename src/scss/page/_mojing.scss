@@ -1,0 +1,32 @@
+.bi-mojing{
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  .project-info{
+    flex: 1;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+
+  &-container{
+    @include widthAndHeight(100%);
+    box-sizing: border-box;
+
+    iframe{
+      @include widthAndHeight(100%);
+    }
+  }
+
+  .project-application{
+    label{
+      margin-right: $globalMargin;
+    }
+    .el-select{
+      width: 200px;
+      .el-input{
+        width: auto;
+      }
+    }
+  }
+}

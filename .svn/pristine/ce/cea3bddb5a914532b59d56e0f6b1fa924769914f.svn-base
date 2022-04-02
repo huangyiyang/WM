@@ -1,0 +1,562 @@
+.project {
+  @include widthAndHeight(100%);
+  background: url(../static/image/header_bg.png) no-repeat;
+
+  &-header {
+    width: 100%;
+    height: $projectHeader;
+    position: fixed;
+    padding: 0 $rightMargin 0 $globalMargin;
+    @include box-sizing();
+    color: $white;
+    @include user-select();
+
+    &-left {
+      float: left;
+      display: table;
+    }
+
+    &-title {
+      display: table-cell;
+      font-size: 32px;
+      letter-spacing: 3px;
+      line-height: $projectHeader;
+      padding-right: 90px;
+      font-weight: bold;
+    }
+
+    &-date {
+      display: table-cell;
+      vertical-align: middle;
+      letter-spacing: 1px;
+
+      &-item {
+        width: 100%;
+        display: table;
+
+        span {
+          display: table-cell;
+          vertical-align: middle;
+          text-align: center;
+        }
+      }
+    }
+
+    &-nav {
+      height: 100%;
+      font-size: 16px;
+      display: table;
+      float: right;
+
+      &>li {
+        display: table-cell;
+        padding: 0 $globalMargin;
+        vertical-align: middle;
+        cursor: pointer;
+
+        &:not(.personal) {
+          &.active,&:hover {
+            background: #35b1fe;
+          }
+        }
+      }
+
+      @at-root {
+        .personal{
+          vertical-align: middle;
+          display: inline-block;
+
+          &-account {
+            min-width: 120px;
+            text-align: center;
+            font-size: 16px;
+
+            &-item {
+              cursor: pointer;
+              border-radius: 5px;
+
+              i {
+                margin-right: 5px;
+              }
+
+              strong {
+                margin-right: 2em;
+              }
+
+              &:not(:last-child) {
+                padding: $globalMargin / 2 0;
+              }
+
+              &:hover {
+                background: #35b1fe;
+                color: $white;
+              }
+            }
+          }
+        }
+      }
+
+      i {
+        font-size: 18px;
+        margin-right: $globalMargin / 2;
+        vertical-align: baseline;
+      }
+    }
+  }
+
+  &-container {
+    position: absolute;
+    top: $projectHeader;
+    bottom: 0;
+    left: 0;
+    right: 0;
+
+    .el-scrollbar {
+      @include widthAndHeight(100%);
+
+      &__wrap {
+        overflow-x: hidden;
+      }
+    }
+  }
+
+  &-title {
+    margin: 0 $rightMargin;
+    @include box-sizing();
+    font-size: 18px;
+    font-weight: bold;
+    line-height: $projectTitle;
+    position: relative;
+    @include line(l,3px,18px,$blue);
+    padding-left: 13px;
+
+    .el-switch {
+      margin-left: $globalMargin;
+    }
+    .response-mode{
+      width: auto;
+      &:first-of-type{
+        margin-left: $globalMargin;
+      }
+    }
+    &.execution{
+      margin-bottom: $projectTableControl;
+    }
+
+    span {
+      cursor: pointer;
+
+      &.active {
+        color: $blue;
+      }
+    }
+
+    .el-icon-refresh {
+      cursor: pointer;
+      color: $success;
+      vertical-align: middle;
+    }
+
+    &-except {
+      width: 100%;
+      height: calc(100% - #{$projectTitle});
+      position: relative;
+
+      iframe {
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+
+  &-list {
+    margin: 0 $rightMargin;
+    padding-bottom: $bottomMargin;
+
+    &.line {
+      position: relative;
+      @include line(b, 100%, 1px, $gray);
+    }
+
+    .advanced {
+      color: $blue;
+      cursor: pointer;
+      vertical-align: middle;
+      @include user-select();
+
+      &>i {
+        font-size: 19px;
+        vertical-align: bottom;
+        @include transition(transform 0.5s cubic-bezier(0.65, 0.05, 0.36, 1));
+      }
+
+      .rotate {
+        @include rotate(180deg);
+      }
+    }
+
+    &-row {
+      @extend .clear-both;
+      padding-bottom: $bottomMargin;
+      width: 100%;
+      display: table;
+      &.title-list{
+        position: absolute;
+        right: 20px;
+        top: 0px;
+        display: flex;
+        flex-direction: row-reverse;
+        pointer-events: none;
+        .half{
+          pointer-events: initial;
+        }
+      }
+      &.border {
+        border: 1px solid $blue;
+        padding: $bottomMargin 0;
+        @include radius(5px);
+      }
+
+      &.all {
+        label {
+          vertical-align: top;
+        }
+
+        .el-textarea {
+          width: calc(100% - #{$labelWidth});
+          height: 120px;
+          display: inline-block;
+          border-radius: 4px;
+
+          code[class*="language-"], pre[class*="language-"] {
+            max-width: 100%;
+          }
+        }
+      }
+
+      .quarter {
+        display: table-cell;
+      }
+
+      label {
+        display: inline-block;
+        width: $labelWidth;
+        text-align: right;
+      }
+      .response-mode{
+        width: auto;
+        &:first-of-type{
+          margin-left: 20px;
+        }
+      }
+      .el-input {
+        width: 160px;
+      }
+
+      .el-icon-thumb {
+        font-size: 20px;
+        vertical-align: middle;
+
+        &.active {
+          color: $blue;
+        }
+      }
+
+      .el-icon-loading {
+        font-size: 20px;
+        vertical-align: middle;
+        color: $blue;
+      }
+
+      .el-icon-check {
+        font-size: 20px;
+        vertical-align: middle;
+        color: $success;
+      }
+
+      .third {
+        display: table-cell;
+
+        label {
+          width: 140px;
+        }
+        &.longsite{
+          label {
+            width: 95px;
+          }
+        }
+
+      }
+
+      .half {
+
+        label {
+          vertical-align: top;
+        }
+        &.longsite .el-input{
+          width: calc(100% - 2.5rem);
+        }&.longsite .el-select{
+          width: calc(100% - 2.5rem);
+          .el-input{width: 100%}
+        }
+        .el-textarea {
+          width: calc(50% + 160px);
+        }
+      }
+    }
+  }
+
+  %projectBox {
+    width: 100%;
+    @include radius(5px);
+    background: $white;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  &-module {
+    @extend %projectBox;
+    @include height($projectModule);
+    padding: 0 $rightMargin;
+    @include box-sizing();
+    margin-bottom: $globalMargin / 2;
+
+    &-name {
+      font-family: 'PingFangSCRegular';
+      font-size: 24px;
+      font-weight: bold;
+      float: left;
+
+      span {
+        color: $blue;
+        font-size: 18px;
+        font-weight: normal;
+        margin-left: $globalMargin;
+      }
+    }
+
+    .el-icon-info {
+      font-size: 30px;
+      vertical-align: middle;
+      margin-right: $globalMargin / 2;
+      cursor: pointer;
+    }
+
+    .rt {
+      display: table;
+
+      .el-input {
+        width: 680px;
+        margin-right: $rightMargin;
+
+        input {
+          cursor: pointer;
+        }
+      }
+    }
+  }
+
+  &-info {
+    @extend %projectBox;
+    @include box-flex();
+    @include flex;
+    @include flex-direction;
+    overflow: hidden;
+
+    &-table {
+      margin: 0 $rightMargin;
+      padding-bottom: $globalMargin;
+      position: relative;
+      @include box-flex();
+
+      .el-button {
+        padding: 7px 20px;
+      }
+
+      .table-control {
+        line-height: $projectTableControl;
+        position: absolute;
+        right: $rightMargin;
+        top: - $projectTableControl;
+        font-size: 16px;
+        letter-spacing: 2px;
+        display: table;
+        @include user-select();
+        cursor: pointer;
+
+        &-except {
+          @include widthAndHeight(100%);
+          position: relative;
+
+          .order {
+            width: 50px;
+          }
+
+          .name {
+            width: 160px;
+          }
+
+          .custom {
+            width: 120px;
+          }
+
+          .path {
+
+            &-type {
+              width: 180px;
+            }
+          }
+
+          .value {
+            &-name {
+              width: 140px;
+            }
+
+            &-type {
+              width: 140px;
+            }
+          }
+
+          .operate {
+            width: 140px;
+          }
+
+          .table-header {
+            width: 100%;
+            height: $tableHeaderHeight;
+            display: table;
+            background: $tableHeaderBg;
+            color: $white;
+
+            &>p {
+              display: table-cell;
+              vertical-align: middle;
+              text-align: center;
+            }
+          }
+
+          .table-body {
+            position: absolute;
+            top: $tableHeaderHeight;
+            bottom: 0;
+            left: 0;
+            right: 0;
+
+            &-tr {
+              width: 100%;
+              height: $tableHeaderHeight;
+              display: table;
+
+              &>div {
+                display: table-cell;
+                vertical-align: middle;
+                text-align: center;
+              }
+            }
+
+            &-td {
+
+              .cell {
+                padding: 0 $globalMargin / 2;
+                @include box-sizing();
+              }
+
+              &.path {
+                .cell {
+                  @include flex;
+
+                  .el-input {
+                    @include box-flex();
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        i {
+          display: table-cell;
+          vertical-align: middle;
+          font-size: 29px;
+          color: $blue;
+        }
+
+        span {
+          display: table-cell;
+          vertical-align: middle;
+        }
+      }
+    }
+
+    &-control {
+      width: 100%;
+      padding: 0 $rightMargin;
+      @include box-sizing();
+      @extend .clear-both;
+      margin-bottom: $bottomMargin;
+
+      .info {
+        float: left;
+        line-height: 40px;
+
+        i {
+          font-size: 16px;
+          color: #35b1fe;
+          margin-right: $globalMargin / 2;
+        }
+
+        span {
+          margin-right: 50px;
+          color: #85888c;
+        }
+      }
+      .flow-area-loading{
+        height: 100%;
+        background: #828790;
+        font-size: 32px;
+      }
+
+      .button-group {
+        float: right;
+      }
+    }
+  }
+
+  &-preview {
+    @extend %projectBox;
+    @include box-flex();
+
+    iframe {
+      width: 100%;
+      height: 100%;
+    }
+  }
+
+  // 登录管理
+  &-login {
+    @include flex;
+    @include flex-direction;
+
+    .off-use{
+      pointer-events: none;
+    }
+    //.personal-tip{
+    //  margin-left: 0 !important;
+    //}
+    span.personal-tip{
+      margin-left: $globalMargin !important;
+    }
+  }
+
+  // 接口管理
+  &-interface {
+    @include flex;
+    @include flex-direction;
+  }
+
+  .TjVisible-info{
+    height: 800px;
+  }
+
+}
+
+/**/

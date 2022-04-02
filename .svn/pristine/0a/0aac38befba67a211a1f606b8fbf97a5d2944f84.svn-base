@@ -1,0 +1,366 @@
+.developer {
+  @include flex;
+  @include flex-direction;
+
+  .project-info {
+    padding: $rightMargin;
+    box-sizing: border-box;
+  }
+
+  &-query {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: $globalMargin;
+
+    &-option {
+      margin-right: $globalMargin;
+
+      label {
+        margin-right:  $globalMargin / 2;
+      }
+    }
+
+    &-input {
+      width: 350px;
+    }
+  }
+
+  .info-title{
+    width: 100%;
+    height: 50px;
+    margin-bottom: 20px;
+    line-height: 50px;
+    .title-left{
+      width: 50%;
+      float: left;
+      text-align: left;
+      height: 100%;
+      div{
+        margin-left: 5px;
+        float: left;
+        height: 100%;
+      }
+      input {
+        height: 100%;
+        background: #ffffff;
+      }
+    }
+    .title-right{
+      width: 50%;
+      float: left;
+      height: 100%;
+      text-align: right;
+      input {
+        width: 50%;
+        height: 50px !important;
+        background: #ffffff;
+      }
+    }
+  }
+
+  .project-list{
+    margin-top: 10px;
+    width: 94%;
+    height: 160px;
+    .project-item{
+      text-align: center;
+      width: 40%;
+      margin-left: 5%;
+      line-height: 150px;
+      height: 150px;
+      float: left;
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1)
+    }
+
+    .project-itemnew{
+      text-align: center;
+      width: 40%;
+      margin-left: 5%;
+      line-height: 150px;
+      height: 150px;
+      background-color: #35b1fe;
+      float: left;
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1)
+    }
+
+    .el-image{
+      margin-top: 40px;
+      width: 80px;
+      height: 60px;
+      line-height: 60px;
+    }
+
+    .item-name{
+      float: left;
+      text-align: center;
+      width: 40%;
+      margin-left: 5%;
+      line-height: 50px;
+      height: 50px;
+    }
+  }
+
+}
+
+.charts{
+  display: flex;
+  flex-direction: column;
+
+  .project-info{
+    padding: 0px $rightMargin;
+    box-sizing: border-box;
+    flex: 1;
+  }
+  .filters{
+    display: flex;
+    padding: $rightMargin 0px;
+    justify-content: space-between;
+
+    &-type{
+      display: flex;
+      .label{
+        margin-right: $globalMargin;
+        line-height: $inputHeight;
+      }
+    }
+  }
+
+  &-enable{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+
+    .el-radio-button:first-child .el-radio-button__inner{
+      border: none;
+    }
+    &-cell{
+      display: block;
+      width: 25%;
+
+
+      .el-radio-button__inner{
+        @include widthAndHeight(100%);
+        padding: 0px;
+        border: none;
+      }
+
+      .el-radio-button__orig-radio:checked+.el-radio-button__inner {
+        color: $primary;
+        background-color: $white;
+        border-color: $white;
+        box-shadow: -0.01rem 0 0 0 $white;
+
+        img{
+          border-color: $primary;
+          box-shadow: 0 0 0.01rem 0 $primary;
+        }
+      }
+    }
+  }
+
+  &-card{
+    img{
+      @include widthAndHeight(100px);
+      padding: 25px;
+      box-sizing: border-box;
+      box-shadow: 0 0 0.01rem 0 $borderColor;
+    }
+    p{
+      padding: $pagePadding;
+      margin-bottom: $globalMargin;
+    }
+  }
+
+  &-next{
+    width: $labelWidth;
+  }
+}
+
+.project-charts{
+  display: flex;
+  flex-direction: column;
+  .refresh-cookJson{
+    font-size: $fontSize;
+    color: $primary;
+    margin-left: $globalMargin;
+    cursor: pointer;
+  }
+  .project-list-row{
+    .half{
+      width: 50%;
+      display: table-cell;
+      &:not(.remark) label{
+        vertical-align: middle;
+      }
+      .el-input{
+        width: calc(25% + 1.6rem);
+      }
+    }
+  }
+  .table-conf-group .el-radio-group label{
+    width: auto;
+  }
+  .project-info{
+    &-even{
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    &-table{
+      width: 49%;
+      .project-title{
+        margin: 0px;
+      }
+      .cookJson-view{
+        font-size: $fontSize;
+        color: $primary;
+        margin-left: $globalMargin;
+      }
+      .table-control{
+        top: 0px;
+      }
+    }
+    &-chart{
+      width: 49%;
+      box-sizing: border-box;
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      flex-direction: column;
+      height: 100%;
+    }
+  }
+
+  .forTable &-preview{
+    height: calc(100% - 54px);
+  }
+  &-preview{
+    flex: 1;
+    padding: $globalMargin;
+    box-sizing: border-box;
+    .preview-box{
+      @include widthAndHeight(100%);
+    }
+  }
+  .cookJson-dailog{
+    .el-dialog__wrapper{
+      display: flex;
+      align-items: center;
+    }
+
+    .el-dialog{
+      @include widthAndHeight(100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 auto !important;
+      overflow: hidden;
+    }
+
+    .el-dialog__body{
+      overflow-y: auto;
+      box-shadow: 0px 0px 10px $borderColor inset;
+      flex: 1;
+      width: 94%;
+
+      .block{
+        width: 90%;
+        margin: 0 auto;
+      }
+    ;
+    }
+    %dialogfullwith{
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .el-dialog__header{
+      @extend %dialogfullwith;
+      //box-shadow: 0px 0.6px 10px #409eff;
+    }
+    .el-dialog__footer{
+      @extend %dialogfullwith;
+      text-align: right;
+      .el-button{
+        padding: 0.07rem 0.2rem;
+      }
+      //box-shadow: 0px -0.6px 10px #409eff;
+    }
+  }
+}
+
+.topic{
+  display: flex;
+  flex-direction: column;
+
+  .project-info{
+    padding: 0px $rightMargin;
+    box-sizing: border-box;
+    flex: 1;
+  }
+  .filters{
+    display: flex;
+    padding: $rightMargin 0px;
+    justify-content: space-between;
+
+    &-type{
+      display: flex;
+      .label{
+        margin-right: $globalMargin;
+        line-height: $inputHeight;
+      }
+    }
+  }
+
+  &-enable{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    overflow-y: auto;
+
+    .el-radio-button:first-child .el-radio-button__inner{
+      border: none;
+    }
+    &-cell{
+      display: block;
+      width: $topicLayoutCardWidth;
+
+
+      .el-radio-button__inner{
+        @include widthAndHeight(100%);
+        padding: 0px;
+        border: none;
+      }
+
+      .el-radio-button__orig-radio:checked+.el-radio-button__inner {
+        color: $primary;
+        background-color: $white;
+        border-color: $white;
+        box-shadow: -0.01rem 0 0 0 $white;
+
+        img{
+          border-color: $primary;
+          box-shadow: 0 0 0.01rem 0 $primary;
+        }
+      }
+    }
+  }
+
+  &-card{
+    img{
+      width: $topicLayoutCardWidth;
+      height: $topicLayoutCardHeight;
+      padding: 8px;
+      box-sizing: border-box;
+      box-shadow: 0 0 0.01rem 0 $borderColor;
+    }
+    p{
+      padding: $pagePadding;
+      margin-bottom: $globalMargin;
+    }
+  }
+
+  &-next{
+    width: $labelWidth;
+  }
+}

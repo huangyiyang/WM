@@ -1,0 +1,8 @@
+{
+  "title": "WISEMOTION应用平台",
+  "BASE_URL": "http://www.wosoo.net:18089/WMServer",
+  "FLOW_PUB_BASE_URL": "/wiseMotion/process/",
+  "TAILOR_URL": "http://www.wosoo.net:18090",
+  "MENU": "3.0",
+  "dealPathFunc": "getTopParentPath2"
+}

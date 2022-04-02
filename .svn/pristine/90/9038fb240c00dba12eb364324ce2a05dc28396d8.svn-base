@@ -1,0 +1,46 @@
+// base
+$white: #fff;
+$black: #000;
+$success: #67c23a;
+$primary: #409eff;
+$info: #909399;
+$danger: #f56c6c;
+$warning: #E6A23C;
+
+
+$orange: #ff5c00;
+$yellow: #ffd400;
+$lightGreen: #99ff00;
+
+$darkGreen: #00ff66;
+$cyan: #00ffff;
+
+
+$gray: #DBDBDB;
+$blue: #1c88f7;
+$normal: #39bfc7;
+$abnormal: #e55e8e;
+$stop: #ccd0d3;
+
+$tagsColor: rgb(228, 116, 223);
+$idColor: rgb(255, 171, 102);
+$classColor: rgb(133, 197, 233);
+$attributeName: rgb(153, 69, 0);
+$attributeValue: rgb(26, 26, 166);
+
+// global
+$fontColor: #424d57;
+$borderColor: #d4d5d6;
+$globalBg: #f3f3f3;
+
+$tableHeaderBg: #35b1fe;
+$tableBorder: #EBEEF5;
+
+// home
+$homeTitleColor: #7e8286;
+$homeList1: #51c483;
+$homeList2: #f8c66d;
+$homeList3: #f37fa5;
+$homeList4: #29b6ff;
+$homeDetails: #0588fe;
+$homeBorder: #e8ecf0;

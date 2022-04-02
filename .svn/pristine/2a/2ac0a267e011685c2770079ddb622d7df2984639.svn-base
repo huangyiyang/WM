@@ -1,0 +1,153 @@
+<template>
+  <div class="management-list-except index">
+    <section class="index-login">
+      <p class="index-login-title">项目运行预览</p>
+      <div class="index-login-box">
+        <el-scrollbar>
+          <ul class="system-list">
+            <li class="system-list-item" v-for="(item, i) in loginData" :key="i">
+              <div class="system-list-box">
+                <!--<iframe sandbox="allow-forms allow-same-origin allow-scripts" name="myframe" :src="item.targetUrl"-->
+                        <!--frameborder="0"></iframe>-->
+              </div>
+              <p class="system-list-name">{{ item.autoLoginName }}</p>
+            </li>
+          </ul>
+        </el-scrollbar>
+      </div>
+    </section>
+    <section class="index-interface">
+      <div class="index-interface-title">
+        <p class="lf">已发布接口列表 ({{ isPublishedData.length }})</p>
+        <ul class="rt">
+          <li class="normal">
+            <i></i>
+            正常
+          </li>
+          <li class="abnormal">
+            <i></i>
+            异常
+          </li>
+          <li class="unknown">
+            <i></i>
+            未知
+          </li>
+          <li class="stop">
+            <i></i>
+            停用
+          </li>
+        </ul>
+      </div>
+      <div class="index-interface-box" ref="tableBox">
+        <el-table
+          height="100%"
+          :data="isPublishedData"
+          max-height="100%"
+          style="width: 100%;">
+          <el-table-column
+            align="center"
+            prop="name"
+            label="接口名称">
+          </el-table-column>
+          <el-table-column
+            align="center"
+            prop="url"
+            show-overflow-tooltip
+            label="URL地址">
+          </el-table-column>
+          <el-table-column
+            align="center"
+            prop="publishTime"
+            label="发布时间">
+          </el-table-column>
+          <el-table-column
+            align="center"
+            prop="loginName"
+            label="登录系统">
+          </el-table-column>
+          <el-table-column
+            align="center"
+            label="状态"
+            width="180">
+            <template slot-scope="scope">
+              <p class="normal" v-if="scope.row.isEnable === 1 && scope.row.status === 0">
+                <i></i>
+                正常
+              </p>
+              <p class="abnormal" v-else-if="scope.row.isEnable === 1 && scope.row.status === 1">
+                <i></i>
+                异常
+              </p>
+              <p class="unknown" v-else-if="scope.row.isEnable === 1 && scope.row.status === 2">
+                <i></i>
+                未知
+              </p>
+              <p class="stop" v-else>
+                <i></i>
+                停用
+              </p>
+            </template>
+          </el-table-column>
+          <el-table-column align="center" label="启用">
+            <template slot-scope="scope">
+              <el-switch
+                v-model="scope.row.isEnable"
+                :active-value="1"
+                :inactive-value="0"  disabled
+                @click.native="changeEnable(scope.row)">
+              </el-switch>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'index',
+  data () {
+    return {
+      loginData: [],
+      isPublishedData: [],
+      tableHeight: 500
+    }
+  },
+  created () {
+    this.loginList();
+    this.isPublishedList();
+  },
+  methods: {
+    /* @method 登录管理列表 */
+    loginList () {
+      this.$axios.post('/autoLogin/list', '', s => {
+        this.loginData = s.data;
+      })
+    },
+    /* @method 接口管理列表 */
+    isPublishedList () {
+      let data = new URLSearchParams();
+      data.append('isPublished', 1);
+      this.$axios.post('/interface/list', data, s => {
+        this.isPublishedData = s.data;
+      });
+    },
+    /* @event 启用禁用修改 */
+    changeEnable (item) {
+      let data = new URLSearchParams();
+      data.append('id', item.id);
+      data.append('isEnable', item.isEnable ? 0 : 1);
+      this.$axios.post('/interface/enable', data, s => {
+        item.isEnable ? item.isEnable = 0 : item.isEnable = 1;
+      });
+    }
+  },
+  mounted () {
+    /*window.onbeforeunload = function () {
+      console.log();
+      return '要显示的提示内容';
+    }*/
+  }
+}
+</script>

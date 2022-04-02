@@ -1,0 +1,108 @@
+<template>
+  <a-form layout="horizontal">
+    <a-form-item label="类型"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-tag color="purple">{{ currentSelect.type }}</a-tag>
+      <a-tag color="purple">截屏</a-tag>
+    </a-form-item>
+    <a-form-item label="id"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input :value="currentSelect.id"
+               disabled />
+    </a-form-item>
+    <a-form-item label="名称"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input placeholder="请输入节点名称"
+               :value="currentSelect.nodeName"
+               @change="nameChange" />
+    </a-form-item>
+    <a-form-item label="存放路径"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.relativePath"
+               @change="relativePathChange" />
+    </a-form-item>
+    <a-form-item label="超时时间"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <a-input style="width: 80%"
+               placeholder=""
+               :value="currentSelect.timeout"
+               @change="timeoutChange" />
+    </a-form-item>
+
+    <a-form-item label="长截屏"
+                 :label-col="formItemLayout.labelCol"
+                 :wrapper-col="formItemLayout.wrapperCol">
+      <el-switch v-model="currentSelect.fullPage"
+                 active-color="#0487fe"
+                 inactive-color="#ccd0d3"
+                 active-text="是否生成长截屏"
+                 :active-value="1"
+                 :inactive-value="0">
+      </el-switch>
+    </a-form-item>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="滚动延时"
+                   v-if="currentSelect.fullPage"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <a-input placeholder=""
+                 :value="currentSelect.scrollInterval"
+                 @change="scrollIntervalChange" />
+      </a-form-item>
+    </transition>
+    <transition name="el-zoom-in-top">
+      <a-form-item label="顶部偏移"
+                   v-if="currentSelect.fullPage"
+                   :label-col="formItemLayout.labelCol"
+                   :wrapper-col="formItemLayout.wrapperCol">
+        <a-input placeholder=""
+                 :value="currentSelect.topOffset"
+                 @change="topOffsetChange" />
+      </a-form-item>
+    </transition>
+  </a-form>
+</template>
+
+<script>
+export default {
+  name: 'screenshot',
+  props: [
+    'currentSelect',
+    'formItemLayout'
+  ],
+  inject: ['nodeAttrChange', 'processGetPath'],
+  methods: {
+    nameChange (e) {
+      this.nodeAttrChange({ attr: 'nodeName', payload: e.target.value })
+    },
+    relativePathChange (e) {
+      this.nodeAttrChange({ attr: 'relativePath', payload: e.target.value })
+    },
+    timeoutChange (e) {
+      // 验证输入数字
+      this.nodeAttrChange({ attr: 'timeout', payload: Number(e.target.value) })
+    },
+    scrollIntervalChange (e) {
+      // 验证输入数字
+      this.nodeAttrChange({ attr: 'scrollInterval', payload: Number(e.target.value) })
+    },
+    topOffsetChange (e) {
+      // 验证输入数字
+      this.nodeAttrChange({ attr: 'topOffset', payload: Number(e.target.value) })
+    },
+    screenShotChange (e) {
+      this.nodeAttrChange({ attr: 'screenShot', payload: e.target.value })
+    },
+    getPath () {
+      this.processGetPath(this.currentSelect.id, this.currentSelect)
+    }
+  }
+}
+</script>

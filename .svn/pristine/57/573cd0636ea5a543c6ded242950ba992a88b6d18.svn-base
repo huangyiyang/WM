@@ -1,0 +1,31 @@
+@include keyframes(fadeInDown) {
+  0% {
+    opacity: 0;
+    @include translate3d(0,-50%,0);
+  }
+
+  to {
+    opacity: 1;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0)
+  }
+}
+
+@include keyframes(fadeOutUp) {
+  0% {
+    opacity: 1
+  }
+
+  to {
+    opacity: 0;
+    @include translate3d(0,-50%,0);
+  }
+};
+
+.fade-enter-active {    //类名：隐藏到显示过程所需要的时间
+  @include animation(fadeInDown .3s ease-in-out);
+}
+.fade-leave-active {    //类名：显示到隐藏过程所需要的时间
+  @include animation(fadeOutUp .3s ease-in-out);
+}
+

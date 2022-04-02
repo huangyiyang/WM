@@ -1,0 +1,1414 @@
+<template>
+  <div class="management-list-except project-login">
+    <section class="project-module">
+      <p class="project-module-name">
+        登录管理 <span>[{{ detailData.autoLoginName || '新增登录' }}]</span>
+      </p>
+      <div class="rt">
+        <template v-if="bugInfo.bugStatus === 0">
+          <el-tooltip class="item" effect="dark" :content="bugInfo.bugDescription" placement="top-start">
+            <i class="el-icon-info"></i>
+          </el-tooltip>
+          <el-button type="info" @click="closeClick">关闭问题</el-button>
+        </template>
+        <el-button v-else type="warning" @click="bugClick">提交bug</el-button>
+        <el-button type="primary" @click="autoLoginSave">保存</el-button>
+        <el-button type="danger" @click="deleteClick">删除</el-button>
+      </div>
+    </section>
+    <section class="project-info">
+      <el-scrollbar>
+        <p class="project-title">
+          <span>基本配置</span>
+          <el-switch
+            v-model="detailData.isCustom"
+            active-color="#0487fe"
+            inactive-color="#ccd0d3"
+            active-text="是否自定义"
+            :active-value="1"
+            :inactive-value="0">
+          </el-switch>
+        </p>
+        <div v-show="detailData.isCustom === 1" class="project-list line">
+          <div class="project-list-row">
+            <div class="quarter">
+              <label for="">名称：</label>
+              <el-input v-model="detailData.autoLoginName"></el-input>
+            </div>
+            <div class="quarter">
+              <label for="">登录URL：</label>
+              <el-input v-model="detailData.targetUrl" @blur="iFrameLoad"></el-input>
+              <i v-show="!loginLoading" class="el-icon-loading"></i>
+              <i v-show="loginLoading" class="el-icon-check"></i>
+            </div>
+            <div class="quarter">
+              <label for="">加载时间：</label>
+              <el-input v-model="detailData.targetUrlLoadTime"></el-input>
+            </div>
+            <div class="quarter">
+              <el-checkbox v-model="holdLogin">保持登录</el-checkbox>
+            </div>
+          </div>
+          <div class="project-list-row all">
+            <label for="">自定义脚本：</label>
+            <prism-editor class="el-textarea"
+                          v-model="detailData.customScript"
+                          :code="detailData.customScript" language="js">
+            </prism-editor>
+          </div>
+        </div>
+        <template v-if="detailData.isCustom === 0" >
+          <div class="project-list line">
+            <div class="project-list-row">
+              <div class="quarter">
+                <label for="">名称：</label>
+                <el-input v-model="detailData.autoLoginName"></el-input>
+              </div>
+              <div class="quarter">
+                <label for="">登录URL：</label>
+                <el-input v-model="detailData.targetUrl" @blur="snapShotchange"></el-input>
+                <i v-show="!loginLoading" class="el-icon-loading"></i>
+                <i v-show="loginLoading" class="el-icon-check"></i>
+              </div>
+              <div class="quarter">
+                <el-checkbox v-model="holdLogin">保持登录</el-checkbox>
+              </div>
+            <div class="quarter" v-show="showintervalTime">
+                <label for="">间隔时长：</label>
+                <el-input v-model="detailData.intervalTime"></el-input>
+            </div>
+            </div>
+            <div class="project-list-row" v-if="detailData.user">
+              <div class="quarter">
+                <label for="">用户名：</label>
+                <el-input v-model="detailData.user.setElementValue"></el-input>
+              </div>
+              <div class="quarter">
+                <label for="">路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'user'}"
+                  v-model="detailData.user.elementPath" ></el-input>
+                <i title="" @click="getPath('user')"
+                   :class="['el-icon-thumb', {active: isSelect === 'user'}]"></i>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.user.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+            </div>
+            <div class="project-list-row" v-if="detailData.pass">
+              <div class="quarter">
+                <label for="">密码：</label>
+                <el-input v-model="detailData.pass.setElementValue" show-password></el-input>
+              </div>
+              <div class="quarter">
+                <label for="">路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'pass'}"
+                  v-model="detailData.pass.elementPath"></el-input>
+                <i title="" @click="getPath('pass')"
+                   :class="['el-icon-thumb', {active: isSelect === 'pass'}]"></i>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.pass.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+            </div>
+            <div class="project-list-row" v-if="detailData.submit">
+              <div class="quarter">
+                <label for="">提交：</label>
+                <el-input
+                  :class="{active: isSelect === 'submit'}"
+                  v-model="detailData.submit.elementPath"></el-input>
+                <i title="" @click="getPath('submit')"
+                   :class="['el-icon-thumb', {active: isSelect === 'submit'}]"></i>
+              </div>
+              <div class="quarter">
+                <label for="">加载时间：</label>
+                <el-input v-model="detailData.targetUrlLoadTime"></el-input>
+              </div>
+              <div class="quarter">
+                <span class="advanced" @click="advancedSetting = !advancedSetting">
+                  <i class="el-icon-s-tools"></i>
+                  <span>高级设置</span>
+                  <i :class="['el-icon-d-arrow-right', {rotate: advancedSetting }]"></i>
+                </span>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.submit.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+            </div>
+            <transition name="el-zoom-in-top">
+              <div class="project-list-row border" v-show="advancedSetting">
+                <div class="quarter">
+                  <label for="">登录时延：</label>
+                  <el-input v-model="detailData.loginDelayTime"></el-input>
+                </div>
+                <div class="quarter" v-if="detailData.point1">
+                  <label for="">预操作1：</label>
+                  <el-input
+                    :class="{active: isSelect === 'point1'}"
+                    v-model="detailData.point1.elementPath" ></el-input>
+                  <i title="" @click="getPath('point1')"
+                     :class="['el-icon-thumb', {active: isSelect === 'point1'}]"></i>
+                </div>
+                <div class="quarter" v-if="detailData.point2">
+                  <label for="">预操作2：</label>
+                  <el-input
+                    :class="{active: isSelect === 'point2'}"
+                    v-model="detailData.point2.elementPath" ></el-input>
+                  <i title="" @click="getPath('point2')"
+                     :class="['el-icon-thumb', {active: isSelect === 'point2'}]"></i>
+                </div>
+                <div class="quarter" v-if="detailData.point3">
+                  <label for="">预操作3：</label>
+                  <el-input
+                    :class="{active: isSelect === 'point3'}"
+                    v-model="detailData.point3.elementPath" ></el-input>
+                  <i title="" @click="getPath('point3')"
+                     :class="['el-icon-thumb', {active: isSelect === 'point3'}]"></i>
+                </div>
+              </div>
+            </transition>
+          </div>
+        </template>
+        <p class="project-title">
+          登录成功条件判断
+          <el-switch
+            v-model="detailData.isCustomTestSuccess"
+            active-color="#0487fe"
+            inactive-color="#ccd0d3"
+            active-text="是否自定义"
+            :active-value="1"
+            :inactive-value="0">
+          </el-switch>
+          <i v-show="successLoading" title="刷新成功页面" class="el-icon-refresh" @click="loginSuccess"></i>
+          <i v-show="!successLoading" class="el-icon-loading"></i>
+        </p>
+        <div class="project-list line">
+          <div class="project-list-row">
+            <div class="quarter">
+              <label for="">判断URL：</label>
+              <el-input v-model="detailData.testSuccessUrl" @blur="snapShotchange('success')"></el-input>
+              <i v-show="!successLoading" class="el-icon-loading"></i>
+              <i v-show="successLoading" class="el-icon-check"></i>
+            </div>
+            <div class="quarter">
+              <label for="">加载时间：</label>
+              <el-input v-model="detailData.testSuccessUrlLoadTime"></el-input>
+            </div>
+          </div>
+          <div class="project-list-row all" v-if="detailData.isCustomTestSuccess === 1">
+            <label for="">自定义脚本：</label>
+            <prism-editor class="el-textarea"
+                          v-model="detailData.customTestSuccessScript"
+                          :code="detailData.customTestSuccessScript" language="js">
+            </prism-editor>
+          </div>
+          <div class="project-list-row" v-else>
+            <template v-if="detailData.success">
+              <div class="quarter">
+                <label for="">路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'success'}"
+                  v-model="detailData.success.elementPath"></el-input>
+                <i title="" v-show="successLoading" @click="getPath('success')"
+                   :class="['el-icon-thumb', {active: isSelect === 'success'}]"></i>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.success.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+              <div class="quarter">
+                <label for="">属性：</label>
+                <el-select v-model="detailData.success.elementAttributeName" placeholder="请选择">
+                  <el-option
+                    v-for="item in valueName"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>
+            </template>
+            <div class="quarter">
+              <label for="">属性包含：</label>
+              <el-input v-model="detailData.testSuccessContainValue"></el-input>
+            </div>
+          </div>
+        </div>
+        <p class="project-title">
+          <span>验证码设置</span>
+          <el-switch
+            v-model="detailData.isCaptcha"
+            active-color="#0487fe"
+            inactive-color="#ccd0d3"
+            active-text="是否启用验证码"
+            :active-value="1"
+            :inactive-value="0">
+          </el-switch>
+        </p>
+        <div class="project-list" v-show="detailData.isCaptcha === 1">
+          <div class="project-list-row">
+            <!--<template v-if="detailData.captchaGet">
+              <div class="third">
+                <label for="">获取验证码路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'captchaGet'}"
+                  v-model="detailData.captchaGet.elementPath"></el-input>
+                <i title="" @click="getPath('captchaGet')"
+                   :class="['el-icon-thumb', {active: isSelect === 'captchaGet'}]"></i>
+              </div>
+              <div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.captchaGet.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>
+            </template>-->
+            <template v-if="detailData.captchaInput">
+              <div class="third">
+                <label for="">验证码输入框路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'captchaInput'}"
+                  v-model="detailData.captchaInput.elementPath"></el-input>
+                <i title="" @click="getPath('captchaInput')"
+                   :class="['el-icon-thumb', {active: isSelect === 'captchaInput'}]"></i>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.captchaInput.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+            </template>
+            <template v-if="detailData.captchaImg">
+              <div class="third">
+                <label for="">验证码图片路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'captchaImg'}"
+                  v-model="detailData.captchaImg.elementPath"></el-input>
+                <i title="" @click="getPath('captchaImg')"
+                   :class="['el-icon-thumb', {active: isSelect === 'captchaImg'}]"></i>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.captchaImg.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+            </template>
+            <template v-if="detailData.captchaRefresh">
+              <div class="third">
+                <label for="">验证码刷新路径：</label>
+                <el-input
+                  :class="{active: isSelect === 'captchaRefresh'}"
+                  v-model="detailData.captchaRefresh.elementPath"></el-input>
+                <i title="" @click="getPath('captchaRefresh')"
+                   :class="['el-icon-thumb', {active: isSelect === 'captchaRefresh'}]"></i>
+              </div>
+              <!--<div class="quarter">
+                <label for="">路径类型：</label>
+                <el-select v-model="detailData.captchaRefresh.elementPathType" disabled placeholder="请选择">
+                  <el-option
+                    v-for="item in pathType"
+                    :key="item.value"
+                    :label="item.name"
+                    :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>-->
+            </template>
+          </div>
+        </div>
+        <!--登录动作执行-->
+        <p class="project-title" v-show="!!detailData.id">
+          <span>会话管理</span>
+        </p>
+        <div class="project-list" v-show="!!detailData.id">
+          <div class="project-list-row">
+            <div class="quarter">
+              <label for="">登录状态：</label>
+              <span class="normal" v-if="sessionStatusSuccess">
+                <i></i>
+                成功
+              </span>
+              <span class="stop" v-else>
+                <i></i>
+                失败
+              </span>
+              <i v-show="!syncSuccessLoading" class="el-icon-loading"></i>
+            </div>
+          </div><div class="project-list-row">
+            <div class="quarter">
+              <el-button type="primary" @click="syncSessionLogin">自动登录</el-button>
+            </div>
+            <div class="third accessTarget">
+              <el-button
+                 type="primary"
+                 :disabled="!isWiseMotionClient"
+                 :class="isWiseMotionClient ? '' : 'off-use'"
+                 @click="WiseMotionClientLogin">人工登录</el-button>
+              <span :class="['accessinfo personal-tip', {'fail': !isWiseMotionClient}]">
+                <i :class="isWiseMotionClient ? 'el-icon-success' : 'el-icon-warning'"></i>
+                WiseMotion智能浏览器可用
+              </span>
+            </div>
+          </div>
+        </div>
+      </el-scrollbar>
+    </section>
+    <el-dialog
+      top="0"
+      ref="box"
+      custom-class="select-path"
+      :visible.sync="pageVisible">
+      <div slot="title" class="select-path-head" id="snap-fresh">
+        <span>选择路径</span>
+        <template v-if="isSuccess">
+          <i v-if="successLoading" title="刷新成功页面" class="el-icon-refresh" @click="loginSuccess"></i>
+          <i v-if="!successLoading" class="el-icon-loading"></i>
+        </template>
+        <template v-else>
+          <i v-if="loginLoading" title="刷新登录页面" class="el-icon-refresh" @click="iFrameLoad"></i>
+          <i v-if="!loginLoading" class="el-icon-loading"></i>
+        </template>
+
+      </div>
+      <div slot="footer" class="select-path-body"  id="snap-area">
+        <div  v-show="!isSuccess" class="iframe-box" v-loading="!loginLoading && !this.snapShotState.loginPage.loaded">
+          <iframe id="iframe" name="iframe" src="" frameborder="0"></iframe>
+        </div>
+        <div v-show="isSuccess" class="iframe-box" v-loading="!successLoading && !this.snapShotState.validatePage.loaded">
+          <iframe id="successIframe" name="iframe" src="" frameborder="0"></iframe>
+        </div>
+        <div ref="mark" class="iframe-mark"></div>
+        <div ref="other" class="iframe-other"></div>
+        <div ref="tips" class="iframe-tips" v-show="currentTag.tagName" @mouseleave="otherHidden">
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'parent' +i}]"
+               @mouseenter="otherShow(item, i, 'parent')" v-for="(item, i) in parentTag" :key="'parent' + i">
+            <el-checkbox v-model="tagSelected"  @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName" class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className" class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div class="iframe-tips-option current" @mouseenter="otherHidden">
+            <el-checkbox v-model="tagSelected" @change="checked => selectClick(checked, currentTag)">
+              <span class="tag-name">{{ currentTag.tagName }}</span>
+              <span v-if="currentTag.idName" class="tag-id">{{ currentTag.idName }}</span>
+              <span v-if="currentTag.className" class="tag-class">{{ currentTag.className }}</span>
+              <template v-if="currentTag.attributeName && currentTag.attributeValue">
+                <span class="attribute-name">{{ currentTag.attributeName }}:</span>
+                <span class="attribute-value">{{ currentTag.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'child' +i}]"
+               @mouseenter="otherShow(item, i, 'child')" v-for="(item, i) in childTag" :key="'child' +i">
+            <el-checkbox v-model="tagSelected" @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName" class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className" class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <el-dialog
+      top="0"
+      ref="box"
+      title="输入验证码"
+      custom-class="enter-code"
+      v-loading="codeLoading"
+      :visible.sync="codeVisible">
+      <el-form :model="codeForm" label-width="60px">
+        <el-form-item label="验证码">
+          <el-image :src="codeForm.verify_code_img_url + randomCode" @load="codeLoad">
+            <div slot="placeholder" class="image-slot">
+              加载中<span class="dot">...</span>
+            </div>
+          </el-image>
+        </el-form-item>
+        <el-form-item label="输入码">
+          <el-input v-model="codeForm.code" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="() => {this.codeVisible = false; this.syncSuccessLoading = true; this.pageVisible ? (this.pageVisible = false,this.successLoading = true) : (this.successLoading = true);}">取 消</el-button>
+        <el-button type="primary" @click="saveCode">确 定</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog
+      top="0"
+      ref="bug"
+      title="bug描述"
+      custom-class="enter-code"
+      :visible.sync="bugVisible">
+      <el-input
+        type="textarea"
+        resize="none"
+        rows="10"
+        placeholder="请输入内容"
+        v-model="bugInfo.bugDescription">
+      </el-input>
+      <div slot="footer">
+        <el-button @click="bugVisible = false">取 消</el-button>
+        <el-button type="primary" @click="reportBug">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+let scaleRatio = 1;
+export default {
+  name: 'projectLogin',
+  data () {
+    return {
+      currentConfig: 'base',
+      showintervalTime: false,
+      sessionStatusChecking: false,
+      wmClientManualLoginData: {},
+      syncSession: false,
+      snapShotState: {
+        loginPage: {
+          url: '',
+          loaded: false
+        },
+        validatePage: {
+          url: '',
+          loaded: false
+        }
+      },
+      detailData: {
+        id: '',
+        sessionStatus: 1,
+        autoLoginName: '',
+        targetUrl: '',
+        targetUrlLoadTime: 200,
+        isHold: 0,
+        intervalTime: 10,
+        point1: {
+          elementPath: ''
+        },
+        point2: {
+          elementPath: ''
+        },
+        point3: {
+          elementPath: ''
+        },
+        user: {
+          setElementValue: '',
+          elementPath: '',
+          elementPathType: 0
+        },
+        pass: {
+          setElementValue: '',
+          elementPath: '',
+          elementPathType: 0
+        },
+        submit: {
+          elementPath: '',
+          elementPathType: 0
+        },
+        loginDelayTime: 1000,
+        testSucessContainValue: '',
+        testSuccessUrl: '',
+        testSuccessUrlLoadTime: '',
+        isCustomTestSuccess: 0,
+        customTestSuccessScript: '',
+        success: {
+          elementPath: '',
+          elementPathType: 0,
+          valuSaveAsType: ''
+        },
+        isCaptcha: 0,
+        captchaGet: {
+          elementPath: '',
+          elementPathType: 0
+        },
+        captchaInput: {
+          elementPath: '',
+          elementPathType: 0
+        },
+        captchaImg: {
+          elementPath: '',
+          elementPathType: 0
+        },
+        captchaRefresh: {
+          elementPath: '',
+          elementPathType: 0
+        },
+        isCustom: 0,
+        customScript: ''
+      },
+      pathType: [],
+      valueName: [],
+      isSelect: '',
+      pageVisible: false,
+      parentTag: [],
+      currentTag: {},
+      childTag: [],
+      tagSelected: false,
+      isSuccess: false,
+      sPath: '',
+      parentNodeX: '',
+      parentNodeY: '',
+      loginLoading: false,
+      successLoading: false,
+      syncSuccessLoading: false,
+      codeForSync: false,
+      advancedSetting: false,
+      canSave: true,
+      maxIFrameWidth: 1150,
+      hoverOption: '',
+      htmlType: 0,
+      codeVisible: false,
+      codeForm: {},
+      codeLoaded: false,
+      randomCode: '?time=' + Math.random(),
+      codeLoading: false,
+      bugInfo: {
+        bugDescription: '',
+        bugStatus: ''
+      },
+      bugVisible: false
+    }
+  },
+  computed: {
+    isWiseMotionClient: function () {
+      console.log(window)
+      return window.WiseMotionClientVersion
+    },
+    sessionStatusSuccess: function () {
+      return Number(this.detailData.sessionStatus) === 0
+    },
+    dealPathUtilFunc: function () {
+      let {dealPathFunc} = this.baseConfig;
+      /* eslint-disable no-unneeded-ternary*/
+      return dealPathFunc ? dealPathFunc : 'getTopParentPath'
+    },
+    holdLogin: {
+      get () {
+        return Boolean(this.detailData.isHold);
+      },
+      set (val, newVal) {
+        val ? this.detailData.isHold = 1 : this.detailData.isHold = 0;
+      }
+    },
+    isCaptcha: {
+      get () {
+        return Boolean(this.detailData.isCaptcha);
+      },
+      set (val, newVal) {
+        val ? this.detailData.isCaptcha = 1 : this.detailData.isCaptcha = 0;
+      }
+    }
+  },
+  created () {
+    this.loginStatusValidate();
+    this.loginSelect();
+  },
+  watch: {
+    '$route' (to, form) {
+      this.isSelect = '';
+      this.isSuccess = false;
+      this.loginLoading = false;
+      this.successLoading = false;
+      this.advancedSetting = false;
+      this.loginDetail();
+    },
+    holdLogin (val) {
+      if (val === true) {
+        this.showintervalTime = true
+      } else {
+        this.showintervalTime = false
+      }
+    }
+  },
+  directives: {
+    blank: {
+      bind (el, binding, vnode) {
+        function documentHandler (e) {
+          if (el.contains(e.target)) {
+            return false;
+          }
+          if (binding.expression) {
+            binding.value(e);
+          }
+        }
+        el.__vueClickOutside__ = documentHandler;
+        document.addEventListener('click', documentHandler);
+      },
+      update () {},
+      unbind (el, binding) {
+        document.removeEventListener('click', el.__vueClickOutside__);
+        delete el.__vueClickOutside__;
+      }
+    }
+  },
+  methods: {
+    /* @event 其他选择显示
+     * @param {Object} item —— 除当前选中的其他父子级元素
+     * @param {Number} i —— 当前选中在父级/子级中的索引值
+     * @param {String} type —— 当前选中的类型（父 or 子）*/
+    otherShow (item, i, type) {
+      this.nodeMark(item.tag);
+      this.hoverOption = type + i;
+    },
+    /* @event 其他选中隐藏 */
+    otherHidden () {
+      this.setMark('other', 0, 0, 0, 0);
+      this.hoverOption = '';
+    },
+    /* @event 切换配置显示 */
+    changeConfig (type) {
+      this.currentConfig = type;
+    },
+    /* @method 登录系统详情信息 */
+    loginDetail () {
+      if (this.$route.query.id) {
+        let data = new URLSearchParams();
+        data.append('id', this.$route.query.id);
+        this.$axios.post('/autoLogin/detail', data, s => {
+          this.wmClientManualLoginData = s.data;//智能登录参数
+
+          for (let one in s.data) {
+            if (typeof s.data[one] === 'object') {
+              for (let two in s.data[one]) {
+                this.detailData[one][two] = s.data[one][two];
+              }
+            } else {
+              this.detailData[one] = s.data[one];
+            }
+          }
+          this.syncSuccessLoading = true;
+          this.bugInfo = {
+            bugDescription: s.data.bugDescription,
+            bugStatus: s.data.bugStatus
+          }
+
+          this.snapShotState.loginPage.url = this.detailData.targetUrl;
+          this.snapShotState.loginPage.loaded = false;
+          this.snapShotState.validatePage.url = this.detailData.testSuccessUrl;
+          this.snapShotState.validatePage.loaded = false;
+
+          this.$nextTick(() => {
+            this.loginLoading = true;
+            this.successLoading = true;
+            // this.iFrameLoad(this.iFrameShow);
+            // this.sessionStatusChecking ? '' : this.detailData.testSuccessUrl ? this.loginSuccess() : '';
+            // this.sessionStatusChecking = false;
+          });
+        });
+      } else {
+        this.detailData = {
+          id: '',
+          autoLoginName: '',
+          targetUrl: '',
+          targetUrlLoadTime: 200,
+          isHold: 0,
+          intervalTime: 10,
+          point1: {
+            elementPath: ''
+          },
+          point2: {
+            elementPath: ''
+          },
+          point3: {
+            elementPath: ''
+          },
+          user: {
+            setElementValue: '',
+            elementPath: '',
+            elementPathType: 0
+          },
+          pass: {
+            setElementValue: '',
+            elementPath: '',
+            elementPathType: 0
+          },
+          submit: {
+            elementPath: '',
+            elementPathType: 0
+          },
+          loginDelayTime: 1000,
+          testSucessContainValue: '',
+          testSuccessUrl: '',
+          testSuccessUrlLoadTime: '',
+          isCustomTestSuccess: 0,
+          customTestSuccessScript: '',
+          success: {
+            elementPath: '',
+            elementPathType: 0,
+            valuSaveAsType: ''
+          },
+          isCaptcha: 0,
+          captchaGet: {
+            elementPath: '',
+            elementPathType: 0
+          },
+          captchaInput: {
+            elementPath: '',
+            elementPathType: 0
+          },
+          captchaImg: {
+            elementPath: '',
+            elementPathType: 0
+          },
+          captchaRefresh: {
+            elementPath: '',
+            elementPathType: 0
+          },
+          isCustom: 0,
+          customScript: ''
+        };
+        this.bugInfo = {
+          bugDescription: '',
+          bugStatus: ''
+        }
+      }
+    },
+    /* @method 下拉数据 */
+    loginSelect () {
+      this.$axios.post('/autoLogin/selectData', '', s => {
+        this.pathType = s.pathTypes;
+        this.valueName = s.valueNames;
+      });
+    },
+    /* @event 点击弹出快照 —— 获取元素路径
+     * @param {String} name —— 获取类型 [success] */
+    getPath (name) {
+      this.currentTag = {};
+      this.parentTag = [];
+      this.childTag = [];
+
+      if (name !== 'success') {
+        if (!this.detailData.targetUrl) {
+          this.$message.warning('请先输入登录URL')
+        } else {
+          this.isSuccess = false;
+          this.isSelect = name;
+          this.pageVisible = true;
+          !this.snapShotState.loginPage.loaded && this.iFrameLoad(this.iFrameShow);
+        }
+      } else {
+        if (!this.detailData.testSuccessUrl) {
+          this.$message.warning('请先输入判断URL')
+        } else {
+          if (this.successLoading) {
+            this.isSuccess = true;
+            this.isSelect = name;
+            if (this.isCaptcha && !this.snapShotState.validatePage.loaded) {
+              this.pageVisible = true;
+              this.loginSuccess(() => {
+                this.iFrameShow();
+                this.sessionStatusSuccess ? (this.pageVisible = true) : (this.codeVisible = true);
+              });
+            } else {
+              this.pageVisible = true;
+              !this.snapShotState.validatePage.loaded && this.loginSuccess(this.iFrameShow);
+            }
+
+            if (this.htmlType === '1') {
+              this.resetImg();
+            }
+          }
+        }
+      }
+    },
+    /*@method 登录成功后验证*/
+    sessionStatusCheck () {
+      if (this.detailData.isCaptcha) {
+        if (!this.detailData.testSuccessUrl) {
+          this.$message.warning('请先输入判断URL')
+        } else {
+          if (this.successLoading) {
+            this.isSuccess = true;
+            if (this.htmlType === '1') {
+              this.resetImg();
+              this.codeVisible = true;
+              this.sessionStatusChecking = true;
+              this.syncSession = true;
+            }
+          }
+        }
+      } else {
+        this.sessionStatusChecking = true;
+        this.loginDetail();
+      }
+    },
+    syncSessionLogin () {
+      try {
+        this.syncSuccessLoading = false;
+        this.codeForSync = true;
+
+        let iFrame = document.getElementById('successIframe');
+        let iWindow = iFrame.contentWindow;
+        let iDoc = iWindow.document;
+        let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+        let paths = '/autoLogin/autoLoginwithSyncSession';
+        let data = new URLSearchParams();
+        for (let one in this.detailData) {
+          if (typeof this.detailData[one] === 'object') {
+            for (let two in this.detailData[one]) {
+              data.append(one + '.' + two, this.detailData[one][two]);
+            }
+          } else {
+            one !== 'createdTime' && one !== 'createUser' ? data.append(one, this.detailData[one]) : '';
+          }
+        }
+        data.append('snapshot_url', this.detailData.testSuccessUrl);
+        data.append('snapshot_mode', 2);
+        data.append('snapshot_is_login', 1);
+        data.append('snapshot_load_time', this.detailData.targetUrlLoadTime);
+        data.append('snapshot_login_data_is_post', 1);
+        data.append('snapshot_login_id', this.detailData.id || '');
+        data.append('loginId', this.detailData.id || '');
+
+        this.$axios.get(paths, data, (res) => {
+          // console.log(res);
+          if (Number(res.data.status) === 11) {
+            this.syncSuccessLoading = true;
+            this.$message.success(res.data.statusText);
+            return;
+          }
+          if (Number(res.data.status) === 13) {
+            this.htmlType = '1';
+            this.codeForm = res.data.result;
+            this.$set(this.codeForm, 'code', '');
+          } else {
+            this.syncSuccessLoading = true;
+            Number(res.data.status) === 12 && this.$message.warning(res.data.statusText);
+            Number(res.data.status) === 0 && this.$message.success('登录成功');
+          }
+          this.sessionStatusCheck();
+        });
+      } catch (e) {
+
+      }
+    },
+    /* @method 登录成功加载 */
+    loginSuccess (fun) {
+      this.successLoading = false;
+      this.codeForSync = false;
+      this.snapShotState.validatePage.loaded = false;
+
+      let iFrame = document.getElementById('successIframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/snapshot';
+      let data = new URLSearchParams();
+      for (let one in this.detailData) {
+        if (typeof this.detailData[one] === 'object') {
+          for (let two in this.detailData[one]) {
+            data.append(one + '.' + two, this.detailData[one][two]);
+          }
+        } else {
+          one !== 'createdTime' && one !== 'createUser' ? data.append(one, this.detailData[one]) : '';
+        }
+      }
+      data.append('snapshot_url', this.detailData.testSuccessUrl);
+      data.append('snapshot_mode', 2);
+      data.append('snapshot_is_login', 1);
+      data.append('snapshot_load_time', this.detailData.targetUrlLoadTime);
+      data.append('snapshot_login_data_is_post', 1);
+      data.append('snapshot_login_id', this.detailData.id || '');
+
+      axios.post(paths, data).then((res) => {
+        // console.log(res, res.headers['snapshot-html-type']);
+        if (res.headers['snapshot-html-type'] && res.headers['snapshot-html-type'] === '1') {
+          this.htmlType = res.headers['snapshot-html-type'];
+
+          this.codeForm = res.data;
+          this.$set(this.codeForm, 'code', '');
+          console.log(fun, fun.name)
+          if (typeof fun === 'function' && ['', 'sessionStatusCheck'].includes(fun.name)) {
+            this.resetImg();
+            this.codeVisible = true;
+            this.snapShotState.validatePage.loaded = false;
+            return fun();
+          }
+          this.successLoading = true;
+        } else {
+          this.htmlType = '0';
+          iframeHtml.innerHTML = res.data;
+          this.successLoading = true;
+          !this.sessionStatusSuccess && (this.detailData.sessionStatus = 0);
+          typeof fun === 'function' ? fun() : '';
+          this.snapShotState.validatePage.loaded = true;
+        }
+      });
+    },
+    /*  @event 验证码加载完成  */
+    codeLoad () {
+      this.codeLoaded = true;
+    },
+    /*  @event 重置验证码 */
+    resetImg () {
+      if (this.codeLoaded) {
+        this.randomCode = '?time=' + Math.random();
+        this.codeLoaded = false;
+      }
+    },
+    /* @event 保存验证码 */
+    saveCode () {
+      let iFrame = document.getElementById('successIframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      console.log(this.codeForm);
+      this.codeLoading = true;
+      let data = new URLSearchParams();
+      data.append('verifycode', this.codeForm.code);
+      axios.post(this.codeForm.post_url, data).then((res) => {
+        console.log(res);
+        iframeHtml.innerHTML = res.data;
+        this.successLoading = true;
+        this.syncSuccessLoading = true;
+        this.snapShotState.validatePage.loaded = true;
+        this.htmlType = '0';
+        this.codeLoading = false;
+        this.codeVisible = false;
+        this.syncSession && (
+          Number(res.data.status) === 12 && this.$message.warning(res.data.statusText),
+          Number(res.data.status) === 0 && this.$message.success('登录成功')
+        );
+        this.syncSession = false;
+        this.codeForSync && this.loginDetail();
+        !this.sessionStatusChecking && (this.pageVisible = true);
+      });
+    },
+    blankClick: function (e) {
+      window.selectMask.remove();
+    },
+    /* @event 删除事件 */
+    deleteClick () {
+      this.$confirm('确认删除当前登录？', '提示', {
+        distinguishCancelAndClose: true,
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+      }).then(() => {
+        let data = new URLSearchParams();
+        data.append('id', this.detailData.id);
+        this.$axios.post('/autoLogin/delete', data, s => {
+          this.$message.success('删除成功！');
+          this.$emit('update-list', true);
+          this.$router.push('/index');
+        });
+      }).catch(() => {});
+    },
+    /* @event 保存登录 */
+    autoLoginSave () {
+      let data = new URLSearchParams();
+      for (let one in this.detailData) {
+        if (typeof this.detailData[one] === 'object') {
+          for (let two in this.detailData[one]) {
+            data.append(one + '.' + two, this.detailData[one][two]);
+          }
+        } else {
+          one !== 'createdTime' && one !== 'createUser' ? data.append(one, this.detailData[one]) : '';
+        }
+      }
+
+      if (this.canSave) {
+        this.canSave = false;
+        this.$axios.post('/autoLogin/save', data, s => {
+          this.$message.success(s.message);
+          this.$emit('update-list', true);
+          this.$router.push({path: '/project/login', query: {id: s.id}});
+          this.canSave = true;
+        }, f => {
+          this.canSave = true;
+        })
+      }
+    },
+    /* @event 提交bug点击事件 */
+    bugClick () {
+      this.bugVisible = true;
+    },
+    /* @event 关闭bug点击事件 */
+    closeClick () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      this.$axios.post('/autoLogin/closeBug', data, s => {
+        this.bugInfo.bugStatus = 1;
+      });
+    },
+    /* @method 提交bug */
+    reportBug () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      data.append('description', this.bugInfo.bugDescription);
+      this.$axios.post('/autoLogin/reportBug', data, s => {
+        this.bugInfo.bugStatus = 0;
+        this.bugVisible = false;
+      });
+    },
+    /* @method iframe加载 */
+    iFrameLoad (fun) {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/snapshot';
+      let data = new URLSearchParams();
+      data.append('snapshot_url', this.detailData.targetUrl);
+      data.append('snapshot_mode', 1);
+      data.append('snapshot_is_login', 0);
+      data.append('snapshot_load_time', this.detailData.targetUrlLoadTime);
+      data.append('snapshot_login_id', this.detailData.id || '');
+      data.append('snapshot_login_data_is_post', 1);
+
+      let point = ['point1', 'point2', 'point3'];
+      for (let one in this.detailData) {
+        if (typeof this.detailData[one] === 'object' && point.includes(one)) {
+          for (let two in this.detailData[one]) {
+            data.append(one + '.' + two, this.detailData[one][two]);
+          }
+        }
+      }
+
+      this.loginLoading = false;
+      this.snapShotState.loginPage.loaded = false;
+      // data.append('snapshot_test_success', 0);
+      axios.post(paths, data).then((res) => {
+        iframeHtml.innerHTML = res.data;
+
+        this.$nextTick(() => {
+          this.loginLoading = true;
+          this.snapShotState.loginPage.loaded = true;
+          typeof fun === 'function' ? fun() : '';
+          if (!this.$route.query.id) {
+            this.iFrameShow();
+          }
+        });
+      });
+    },
+    /* @function iframe页面绑定鼠标移动事件 */
+    mouseEvent (e) {
+      e.preventDefault();
+      let event = e || window.event,
+        target = event.target;
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+
+      if (this.isSelect) {
+        this.setMark('mark', eleWidth, eleHeight, offsetX, offsetY);
+        this.setTips(offsetX, offsetY, target, event.clientX, event.clientY);
+      }
+    },
+    /* @function 阻止iframe页面默认点击事件 */
+    preventClick (e) {
+      e.preventDefault();
+    },
+    /* @function 设置遮罩层样式
+    * @param {String} name —— 选中元素对应mark种类 [mark/other]
+    * @param {Number||String} width —— 选中元素的宽度
+    * @param {Number||String} height —— 选中元素的高度
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值 */
+    setMark (name, width, height, left, top) {
+      let style = {
+        'width': width + 'px',
+        'height': height + 'px',
+        'left': left + 'px',
+        'top': top + 'px'
+      }
+      for (let k in style) {
+        this.$refs[name].style[k] = style[k];
+      }
+    },
+    /* @function 设置标签样式
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值
+    * @param {DOM} target —— 选中元素
+    * @param {Number||String} moveX —— 当前鼠标 X 轴上的值
+    * @param {Number||String} moveY —— 当前鼠标 Y 轴上的值 */
+    setTips (left, top, target, moveX, moveY) {
+      this.currentTag = this.nodeParams(target);
+
+      this.parentTag = this.parentNode(target, 3);
+      this.childTag = this.childNode(target, 3);
+
+      this.$nextTick(() => {
+        let tipHalfOffsetWidth = this.$refs.tips.offsetWidth / 2;
+        let tipOffsetHeight = this.$refs.tips.offsetHeight;
+        let boxHeight = this.$refs.box.offsetHeight;
+        let eleWidth = target.offsetWidth * scaleRatio,
+          eleHeight = target.offsetHeight * scaleRatio;
+
+        if (this.maxIFrameWidth === 0) {
+          left += 2;
+        } else {
+          if (moveX - tipHalfOffsetWidth * 2 < 0) {
+            left = 2;
+          } else {
+            if (moveX + tipHalfOffsetWidth * 2 > this.maxIFrameWidth) {
+              left = this.maxIFrameWidth - tipHalfOffsetWidth * 2 - 2;
+            } else {
+              left = moveX - tipHalfOffsetWidth;
+            }
+          }
+        }
+
+        if (tipOffsetHeight > top) {
+          if (eleHeight > tipOffsetHeight * 3) {
+            top += 8;
+          } else {
+            top = top + eleHeight;
+          }
+        } else {
+          top = top - tipOffsetHeight;
+        }
+
+        let style = {
+          'left': left + 'px',
+          'top': top + 'px'
+        };
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+        }
+      });
+    },
+    /* @function 查询父级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    parentNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.parentElement) {
+          let parentDom = target.parentElement;
+          let parent = this.nodeParams(target.parentElement);
+          arr.unshift(parent);
+          if (parentDom.parentElement) {
+            target = parentDom;
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询子级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    childNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.children && target.children.length > 0 && target.children[0].nodeName.toLowerCase() !== 'script') {
+          let childDom = target.children[0];
+          let child = this.nodeParams(target.children[0]);
+          arr.push(child);
+          if (childDom.children && childDom.children.length > 0 && childDom.children[0].nodeName.toLowerCase() !== 'script') {
+            target = target.children[0];
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询节点元素的属性及参数
+    * @param {DOM} target —— 当前需要查询的节点元素 */
+    nodeParams (target) {
+      let tag = {
+        tag: target,
+        tagName: target.nodeName.toLowerCase(),
+        idName: target.id === '' ? '' : '#' + target.id,
+        className: target.className === '' ? '' : '.' + target.className,
+        sPath: this.utils[this.dealPathUtilFunc](target)
+      };
+
+      if (target.getAttribute('href')) {
+        tag.attributeName = 'href';
+        tag.attributeValue = target.getAttribute('href');
+      } else if (target.getAttribute('src')) {
+        tag.attributeName = 'src';
+        tag.attributeValue = target.getAttribute('src');
+      }
+
+      return tag
+    },
+    /* @function hover选中的元素的遮罩
+    * @param {DOM} target —— hover选中的元素  */
+    nodeMark (target) {
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+      this.setMark('other', eleWidth, eleHeight, offsetX, offsetY);
+    },
+    /* @event 确认选中路径（多选框点击）
+    * @param {Boolean} val —— 当前点击多选框对应的boolean值
+    * @param {Object} item —— 当前点击多选框对应的路径对象 */
+    selectClick (val, item) {
+      if (val) {
+        this.pageVisible = false;
+        this.tagSelected = false;
+        this.detailData[this.isSelect].elementPath = item.sPath;
+        console.log(item.sPath);
+        let point = ['point1', 'point2', 'point3'];
+        if (point.includes(this.isSelect)) {
+          this.iFrameLoad();
+        }
+      }
+    },
+    /* @function iframe 选中事件  */
+    iFrameShow (type) {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+
+      this.parentNodeX = this.utils.getAbsolutelyPosition(iFrame.parentNode).left * scaleRatio;
+      this.parentNodeY = this.utils.getAbsolutelyPosition(iFrame.parentNode).top * scaleRatio;
+
+      this.iFrameRemove();
+      this.iFrameRemove('success');
+      document.getElementById('successIframe').contentWindow.document.addEventListener('mousemove', this.mouseEvent, false);
+      document.getElementById('successIframe').contentWindow.document.addEventListener('click', this.preventClick);
+      iDoc.addEventListener('mousemove', this.mouseEvent, false);
+      iDoc.addEventListener('click', this.preventClick);
+      /*刷新快照，去掉选择提示*/
+      document.querySelector('#snap-area').addEventListener('mouseenter', () => {
+        let style = {
+          'visibility': 'visible'
+        }
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+          this.$refs.mark.style[k] = style[k];
+        }
+      }, false);
+      /*刷新快照，去掉选择提示*/
+      document.querySelector('#snap-area').addEventListener('mouseleave', () => {
+        let style = {
+          'visibility': 'hidden'
+        }
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+          this.$refs.mark.style[k] = style[k];
+        }
+      }, false);
+    },
+    /* @function iframe 事件移除 */
+    iFrameRemove (type) {
+      let name;
+      type ? name = 'successIframe' : name = 'iframe';
+      let iFrame = document.getElementById(name);
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      iDoc.removeEventListener('mousemove', this.mouseEvent, false);
+      iDoc.removeEventListener('click', this.preventClick, false);
+    },
+    /*WiseMotionClientLogin*/
+    WiseMotionClientLogin () {
+      window['_wmClientManualLogin'] ? window['_wmClientManualLogin'](this.wmClientManualLoginData) : window.open(this.detailData.targetUrl, '_blank');
+    },
+    /*快照地址改变，拉取一次快照*/
+    snapShotchange (type) {
+      let {loginPage, validatePage} = this.snapShotState
+      if (type === 'success') {
+        let {url, loaded} = validatePage;
+        if (url !== this.detailData.testSuccessUrl) {
+          this.snapShotState.validatePage.url = this.detailData.testSuccessUrl;
+          this.detailData.sessionStatus = 1;
+          loaded = false;
+        }
+
+        !loaded && this.loginSuccess(this.iFrameShow);
+      } else {
+        let {url, loaded} = loginPage;
+        if (url !== this.detailData.targetUrl) {
+          this.snapShotState.loginPage.url = this.detailData.targetUrl;
+          loaded = false;
+        }
+
+        !loaded && this.iFrameLoad(this.iFrameShow);
+      }
+    },
+    loginStatusValidate (fun) {
+      this.syncSuccessLoading = false;
+      let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/sessionalive/' + this.$route.query.id;
+      if (this.$route.query.id) {
+        axios.get(paths).then((res) => {
+          this.$nextTick(() => {
+            this.syncSuccessLoading = true;
+            this.loginDetail();
+          });
+        });
+      } else {
+        this.loginDetail();
+      }
+    }
+  },
+  mounted () {
+    // this.iFrameLoad(this.iFrameShow);
+  },
+  //生命周期 - 销毁完成
+  destroyed () {
+    this.iFrameRemove();
+    this.iFrameRemove('success');
+  }
+}
+</script>

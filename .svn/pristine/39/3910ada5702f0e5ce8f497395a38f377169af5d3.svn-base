@@ -1,0 +1,1691 @@
+<template>
+  <div class="management-list-except project-interface"
+       v-loading="testLoading">
+    <section class="project-module">
+      <p class="project-module-name">
+        自动登录管理 <span>[{{`${(detailData.processName || '新增登录流程')}${ existCode ? '-验证码' : '' }`}}]</span>
+      </p>
+      <div class="rt">
+        <template v-if="status.isPublished === 1">
+          API地址：
+          <el-input id="publishPath"
+                    class="publish-path"
+                    v-model="publishPath"
+                    readonly
+                    @click.native="copyPath"></el-input>
+          <el-button type="primary"
+                     @click="readApi">查看</el-button>
+          <template v-if="bugInfo.bugStatus === 0">
+            <el-tooltip class="item"
+                        effect="dark"
+                        :content="bugInfo.bugDescription"
+                        placement="top-start">
+              <i class="el-icon-info"></i>
+            </el-tooltip>
+            <el-button type="info"
+                       @click="closeClick">关闭问题</el-button>
+          </template>
+          <el-button v-else
+                     type="warning"
+                     @click="bugClick">提交bug</el-button>
+          <el-button v-if="status.isEnable === 1"
+                     type="info"
+                     @click="changeEnable(0)">停用</el-button>
+          <el-button v-if="status.isEnable === 0"
+                     type="success"
+                     @click="changeEnable(1)">启用</el-button>
+        </template>
+        <template v-else>
+          <template v-if="bugInfo.bugStatus === 0">
+            <el-tooltip class="item"
+                        effect="dark"
+                        :content="bugInfo.bugDescription"
+                        placement="top-start">
+              <i class="el-icon-info"></i>
+            </el-tooltip>
+            <el-button type="info"
+                       @click="closeClick">关闭问题</el-button>
+          </template>
+          <el-button v-else
+                     type="warning"
+                     @click="bugClick">提交bug</el-button>
+        </template>
+        <el-button type="primary"
+                   @click="interfacePublish">
+          {{ status.isPublished === 0 ? '发布' : '取消发布' }}
+        </el-button>
+        <el-button type="danger"
+                   @click="deleteClick">删除</el-button>
+      </div>
+    </section>
+    <section class="project-info">
+      <el-scrollbar view-class="flex-column">
+        <div>
+          <div class="project-title"
+               style="float: left;width:200px;">流程信息</div>
+          <div class="project-info-control"
+               style="float: right;width:300px;margin-top: 0.15rem;">
+            <div :class="['button-group', {'accessInvalid': accessFail}]">
+              <el-button type="primary"
+                         @click="interfaceTest">测试</el-button>
+              <el-button type="primary"
+                         @click="interfaceSave">保存</el-button>
+            </div>
+          </div>
+        </div>
+        <div class="project-list">
+          <div class="project-list-row"
+               style="padding-bottom: 0rem;
+                    width: 20%;
+                    display: block;
+                    float: left;">
+            <div class="third longsite">
+              <label for="">名称：</label>
+              <el-input v-model="detailData.processName"></el-input>
+            </div>
+          </div>
+          <div class="project-list-row"
+               style="padding-bottom: 0rem;
+                    width: 20%;
+                    display: block;
+                    float: left;">
+            <div class="">
+              <label for="">备注：</label>
+              <el-input v-model="detailData.remark"></el-input>
+            </div>
+          </div>
+          <div class="project-list-row"
+               style="padding-bottom: 0rem;
+                    width: 10%;
+                    display: block;
+                    float: left;">
+            <div class="">
+              <el-checkbox v-model="needKey">验证密钥</el-checkbox>
+            </div>
+          </div>
+          <div class="project-list-row"
+               style="padding-bottom: 0rem;
+                    width: 10%;
+                    display: block;
+                    float: left;">
+            <div class="">
+              <el-checkbox v-model="holdLogin">保持登录</el-checkbox>
+            </div>
+          </div>
+          <div class="project-list-row"
+               v-show="showintervalTime"
+               style="padding-bottom: 0rem;
+                    width: 15%;
+                    display: block;
+                    float: left;">
+            <div class="hold-param">
+              <label for="">保持间隔：</label>
+              <el-input v-model="detailData.period"></el-input>
+            </div>
+          </div>
+          <div class="project-list-row"
+               v-show="showintervalTime"
+               style="padding-bottom: 0rem;
+                    width: 15%;
+                    display: block;
+                    float: left;">
+            <div class="hold-param">
+              <label for="">重试次数：</label>
+              <el-input v-model="detailData.maxTry"></el-input>
+            </div>
+          </div>
+        </div>
+        <p class="project-title execution"
+           style="margin-bottom:0px;">
+          流程配置
+        </p>
+        <div class="project-info-control"
+             style="height:550px">
+          <flowEditor ref="flowEditor"
+                      v-if="EditorLoad"
+                      :interFaceFlowData="detailData.flowData"
+                      :files="files"
+                      :fullPage="fullPage"
+                      nodesGroupName="loginGroup"></flowEditor>
+          <div class="flow-area-loading"
+               v-loading="!EditorLoad"
+               element-loading-spinner="el-icon-loading"
+               v-else></div>
+        </div>
+        <!--  <p class="project-title">
+          返回方式配置
+          <el-radio class="response-mode"
+                    v-model="detailData.responseMode"
+                    label="1">同步</el-radio>
+          <el-radio class="response-mode"
+                    v-model="detailData.responseMode"
+                    label="2">异步</el-radio>
+          <transition name="el-zoom-in-top">
+            <div class="project-list-row title-list"
+                 v-show="detailData.responseMode === '2'">
+              <div class="half longsite">
+                <label for="">数据通道：</label>
+                <el-input v-model="detailData.responseAccess"></el-input>
+              </div>
+            </div>
+          </transition>
+        </p>-->
+        <p class="project-title execution"
+           style="margin-bottom:0px;">
+          执行资源固化
+          <el-switch v-model="detailData.sendWay"
+                     active-color="#0487fe"
+                     inactive-color="#ccd0d3"
+                     active-text="是否指定"
+                     :active-value="1"
+                     :inactive-value="0">
+          </el-switch>
+          <transition name="el-zoom-in-top">
+            <div class="project-list-row title-list"
+                 v-show="detailData.sendWay">
+              <div class="half longsite">
+                <label for="">执行资源：</label>
+                <el-select v-model="detailData.clientId"
+                           placeholder="请选择">
+                  <el-option v-for="item in clients"
+                             :key="item.value"
+                             :label="item.name"
+                             :value="item.value">
+                  </el-option>
+                </el-select>
+              </div>
+            </div>
+          </transition>
+        </p>
+      </el-scrollbar>
+    </section>
+    <!--processSnapshot-->
+    <el-dialog top="0"
+               ref="box"
+               title="选择路径"
+               custom-class="select-path"
+               :visible.sync="pageVisible">
+      <div slot="title"
+           class="select-path-head"
+           id="snap-fresh">
+        <span>选择路径</span>
+        <i v-if="loginLoading"
+           title="刷新页面"
+           class="el-icon-refresh"
+           @click="iFrameLoad"></i>
+        <i v-if="!loginLoading"
+           class="el-icon-loading"></i>
+      </div>
+      <div slot="footer"
+           class="select-path-body"
+           id="snap-area"
+           v-loading="!loginLoading">
+        <iframe id="iframe"
+                name="iframe"
+                src=""
+                frameborder="0"></iframe>
+        <div ref="mark"
+             class="iframe-mark"></div>
+        <div ref="other"
+             class="iframe-other"></div>
+        <div ref="tips"
+             class="iframe-tips"
+             v-show="currentTag.tagName"
+             @mouseleave="otherHidden">
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'parent' +i}]"
+               @mouseenter="otherShow(item, i, 'parent')"
+               v-for="(item, i) in parentTag"
+               :key="'parent' + i">
+            <el-checkbox v-model="tagSelected"
+                         @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName"
+                    class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className"
+                    class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div class="iframe-tips-option current"
+               @mouseenter="otherHidden">
+            <el-checkbox v-model="tagSelected"
+                         @change="checked => selectClick(checked, currentTag)">
+              <span class="tag-name">{{ currentTag.tagName }}</span>
+              <span v-if="currentTag.idName"
+                    class="tag-id">{{ currentTag.idName }}</span>
+              <span v-if="currentTag.className"
+                    class="tag-class">{{ currentTag.className }}</span>
+              <template v-if="currentTag.attributeName && currentTag.attributeValue">
+                <span class="attribute-name">{{ currentTag.attributeName }}:</span>
+                <span class="attribute-value">{{ currentTag.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+          <div :class="['iframe-tips-option', {'other': hoverOption === 'child' +i}]"
+               @mouseenter="otherShow(item, i, 'child')"
+               v-for="(item, i) in childTag"
+               :key="'child' +i">
+            <el-checkbox v-model="tagSelected"
+                         @change="checked => selectClick(checked, item)">
+              <span class="tag-name">{{ item.tagName }}</span>
+              <span v-if="item.idName"
+                    class="tag-id">{{ item.idName }}</span>
+              <span v-if="item.className"
+                    class="tag-class">{{ item.className }}</span>
+              <template v-if="item.attributeName && item.attributeValue">
+                <span class="attribute-name">{{ item.attributeName }}:</span>
+                <span class="attribute-value">{{ item.attributeValue }}</span>
+              </template>
+            </el-checkbox>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
+    <!--processTestResult-->
+    <el-dialog top="0"
+               title="测试结果"
+               custom-class="json-box"
+               :visible.sync="jsonVisible">
+      <pre slot="footer">{{ jsonString }}</pre>
+    </el-dialog>
+    <!--processBug-->
+    <el-dialog top="0"
+               ref="bug"
+               title="bug描述"
+               custom-class="enter-code"
+               :visible.sync="bugVisible">
+      <el-input type="textarea"
+                resize="none"
+                rows="10"
+                placeholder="请输入内容"
+                v-model="bugInfo.bugDescription">
+      </el-input>
+      <div slot="footer">
+        <el-button @click="bugVisible = false">取 消</el-button>
+        <el-button type="primary"
+                   @click="reportBug">确 定</el-button>
+      </div>
+    </el-dialog>
+    <!--processSnapshotVerifyCode-->
+    <el-dialog top="0"
+               ref="box"
+               title="输入验证码"
+               custom-class="enter-code"
+               v-loading="codeLoading"
+               :visible.sync="codeVisible">
+      <el-form :model="codeForm"
+               label-width="60px">
+        <el-form-item label="验证码">
+          <el-image :src="codeForm.verify_code_img_url + randomCode"
+                    @load="codeLoad">
+            <div slot="placeholder"
+                 class="image-slot">
+              加载中<span class="dot">...</span>
+            </div>
+          </el-image>
+        </el-form-item>
+        <el-form-item label="输入码">
+          <el-input v-model="codeForm.code"
+                    autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer">
+        <el-button @click="() => {this.codeVisible = false;this.pageVisible ? (this.pageVisible = false,this.loginLoading = true) : (this.loginLoading = true);}">取 消</el-button>
+        <el-button type="primary"
+                   @click="saveCode">确 定</el-button>
+      </div>
+    </el-dialog>
+    <!--processGainTable-->
+    <el-dialog top="0"
+               ref="'gainTable'"
+               title="获取数据封装"
+               custom-class="enter-code"
+               width="1200px"
+               @close="gainTableSaveData"
+               :visible.sync="gainTableVisible">
+      <div class="TjVisible-info">
+        <div class="project-info-table">
+          <p class="table-control"
+             @click="addRow">
+            <i class="el-icon-circle-plus"></i>
+            <span>新增一行</span>
+          </p>
+          <el-table :data="tableData"
+                    row-key="subOrder"
+                    default-expand-all
+                    :indent="32"
+                    :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
+                    max-height="450"
+                    style="width: 100%;">
+            <el-table-column align="center"
+                             width="100">
+              <template slot-scope="scope">
+                <i v-show="!scope.row.isLast"
+                   class="el-icon-folder-opened"></i>
+              </template>
+            </el-table-column>
+            <el-table-column align="center"
+                             prop="valueSaveToKey"
+                             label="属性名称">
+              <template slot-scope="scope">
+                <el-input v-model="scope.row.valueSaveToKey"></el-input>
+              </template>
+            </el-table-column>
+            <el-table-column width="120"
+                             align="center"
+                             label="自定义接口">
+              <template slot-scope="scope">
+                <el-switch v-model="scope.row.isCustom"
+                           active-color="#0487fe"
+                           inactive-color="#ccd0d3"
+                           :active-value="1"
+                           :inactive-value="0"
+                           @change="changeCustom($event, scope.row)">
+                </el-switch>
+              </template>
+            </el-table-column>
+            <el-table-column min-width="190"
+                             class-name="path-column"
+                             align="center"
+                             prop="elementPath"
+                             label="值路径">
+              <template slot-scope="scope">
+                <template v-if="scope.row.isCustom === 0">
+                  <el-input :class="{active: isSelect === scope.$index}"
+                            v-model="scope.row.elementPath"></el-input>
+                  <span title=""
+                        @click="processTableGetPath(scope.$index, scope.row)"
+                        :class="['select-button', {active: isSelect === scope.$index}]">
+                    <i class="el-icon-thumb"></i>
+                  </span>
+                </template>
+                <el-button @click="importScript(scope.$index, scope.row)"
+                           v-else>导入自定义脚本</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column width="140"
+                             align="center"
+                             prop="elementAttributeName"
+                             label="值属性名称">
+              <template slot-scope="scope">
+                <el-select v-if="scope.row.isCustom === 0"
+                           v-model="scope.row.elementAttributeName"
+                           placeholder="请选择">
+                  <el-option v-for="item in valueName"
+                             :key="item.value"
+                             :label="item.name"
+                             :value="item.value">
+                  </el-option>
+                </el-select>
+                <template v-else></template>
+              </template>
+            </el-table-column>
+            <el-table-column width="140"
+                             align="center"
+                             prop="valueSaveAsType"
+                             label="值类型">
+              <template slot-scope="scope">
+                <el-select v-if="scope.row.isCustom === 0"
+                           v-model="scope.row.valueSaveAsType"
+                           placeholder="请选择">
+                  <el-option v-for="item in valueType"
+                             :key="item.value"
+                             :label="item.name"
+                             :value="item.value">
+                  </el-option>
+                </el-select>
+                <template v-else></template>
+              </template>
+            </el-table-column>
+            <el-table-column class-name="operation-column"
+                             align="center"
+                             label="操作">
+              <template slot-scope="scope">
+                <span class="add-button"
+                      v-if="!scope.row.isLast && (scope.row.valueSaveAsType === 4 || scope.row.valueSaveAsType === 5)"
+                      @click="addChildren(scope.$index, scope.row)">
+                  <i class="el-icon-plus"></i>
+                </span>
+                <span class="placeholder"
+                      v-else></span>
+                <span class="delete-button"
+                      v-if="scope.$index !== 0"
+                      @click="deleteRow(scope.row, scope)">
+                  <i class="el-icon-delete"></i>
+                </span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-dialog title="自定义脚本"
+                     top="0"
+                     custom-class="custom-dialog"
+                     append-to-body
+                     :visible.sync="isVisible">
+            <prism-editor v-model="textarea"
+                          :code="textarea"
+                          language="js"></prism-editor>
+            <div slot="footer">
+              <el-button type="primary"
+                         @click="confirmSave">保 存</el-button>
+              <el-button type="primary"
+                         @click="cancellation">取 消</el-button>
+            </div>
+          </el-dialog>
+        </div>
+      </div>
+      <div slot="footer">
+        <el-button type="primary"
+                   @click="gainTableSaveData">保存</el-button>
+      </div>
+    </el-dialog>
+    <!--processTestTable-->
+    <el-dialog top="0"
+               ref="processTestTable"
+               title="测试参数"
+               custom-class="enter-code"
+               width="700px"
+               :visible.sync="TVisible">
+      <div class="TjVisible-info">
+        <el-table :data="processTestTableData"
+                  style="width: 100%">
+          <el-table-column prop="tit"
+                           label="参数名"
+                           width="180">
+          </el-table-column>
+          <!--<el-table-column prop="type"-->
+          <!--label="参数类型"-->
+          <!--width="180">-->
+          <!--</el-table-column>-->
+          <el-table-column label="值">
+            <template slot-scope="scope">
+              <el-input v-model="scope.row.val"></el-input>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div slot="footer">
+        <el-button type="primary"
+                   @click="processTestRun">测试</el-button>
+        <el-button @click="processClearData">清空内容</el-button>
+      </div>
+    </el-dialog>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+import flowEditor from '../../components/flow/designer/FlowDesigner.vue'
+import { ZFSN } from '../../components/flow/designer/util/ZFSN.js'
+let scaleRatio = 1;
+export default {
+  name: 'projectLoginProcess',
+  components: {
+    flowEditor
+  },
+  data () {
+    return {
+      usableCount: 0,
+      targetUrlCount: 0,
+      accessInfo: false,
+      accessFail: false,
+      accessMessage: '',
+      snapShotState: {
+        targetUrl: '',
+        targetUrlLoadTime: 200,
+        autoLoginId: '',
+        loaded: false
+      },
+      clients: [],
+      htmlType: 0,
+      codeVisible: false,
+      codeForm: {},
+      codeLoaded: false,
+      randomCode: '?time=' + Math.random(),
+      codeLoading: false,
+      holdLogin: false,
+      needKey: false,
+      showintervalTime: false,
+      detailData: {
+        id: '',
+        processName: '',
+        isLogin: 0,
+        autoLoginId: '',
+        remark: '',
+        checked: true,
+        isHold: 0,
+        needKey: 0,
+        maxTry: 3,
+        period: 12000,
+        flowData: {},
+        sendData: {},
+        responseMode: '1',
+        responseAccess: '',
+        concurrencyCount: '1',
+        sendWay: 0,
+        clientId: ''
+      },
+      files: [],
+      createData: {
+        createdTime: '',
+        createUser: ''
+      },
+      status: {
+        isPublished: 0,
+        isEnable: 0,
+        status: 0
+      },
+      tableData: [],
+      pathType: [],
+      valueName: [],
+      valueType: [],
+      logins: [],
+      isSelect: '',
+      nodeid: '',
+      isVisible: false,
+      textarea: '',
+      currentRow: '',
+      pageVisible: false,
+      parentTag: [],
+      currentTag: {},
+      childTag: [],
+      tagSelected: false,
+      sPath: '',
+      parentNodeX: '',
+      parentNodeY: '',
+      publishPath: '',
+      newpublishPath: '',
+      jsonString: '',
+      jsonVisible: false,
+      loginLoading: false,
+      maxOrder: 0,
+      currentOrder: Number,
+      curAttr: '',
+      canSave: true,
+      maxIFrameWidth: 1150,
+      maxIFrameHeight: 0,
+      hoverOption: '',
+      testLoading: false,
+      TVisible: false,
+      processTestTableData: [],
+      bugInfo: {
+        bugDescription: '',
+        bugStatus: 0
+      },
+      bugVisible: false,
+      gainTableVisible: false,
+      gainTableBelong: '',
+      EditorLoad: false,
+      fullPage: false
+    }
+  },
+  provide () {
+    return {
+      processGainTable: this.processGainTable, //共享获取table装载
+      gainTableShow: this.gainTableShow, //共享获取table展示
+      processSnapshot: this.processSnapshot, //共享快照装载
+      processSnapShotchange: this.processSnapShotchange, //共享快照改变
+      processGetPath: this.processGetPath, //共享路径获取定位及trigger
+      processClearGetPathTargrt: this.processClearGetPathTargrt, //共享路径获取目标清除
+      syncFlowData: this.syncFlowData, //同步编辑器流程数据
+      processSave: this.interfaceSave, //保存流程
+      processTest: this.interfaceTest, // 测试流程
+      toggleEidterFullpage: this.toggleEidterFullpage, // 页面全屏编辑
+      processAttrChange: this.processAttrChange // 流程控制属性修改
+    }
+  },
+  computed: {
+    dealPathUtilFunc: function () {
+      let { dealPathFunc } = this.baseConfig;
+      /* eslint-disable no-unneeded-ternary*/
+      return dealPathFunc ? dealPathFunc : 'getTopParentPath'
+    },
+    existCode: function () {
+      return this.$route.params.existCode
+    }
+  },
+  created () {
+    this.interfaceDetail();
+    this.interfaceClients();
+  },
+  watch: {
+    '$route' (to, form) {
+      this.isSelect = '';
+      this.isSuccess = false;
+      this.loginLoading = false;
+      this.maxOrder = 0;
+      this.interfaceDetail();
+    },
+    'detailData.sendWay' (val) {
+      val && this.interfaceClients();
+    },
+    holdLogin (val) {
+      if (val === true) {
+        this.showintervalTime = true
+        this.detailData.isHold = 1
+      } else {
+        this.showintervalTime = false
+        this.detailData.isHold = 0
+      }
+    },
+    needKey (val) {
+      if (val === true) {
+        this.detailData.needKey = 1
+      } else {
+        this.detailData.needKey = 0
+      }
+    }
+  },
+  directives: {
+    blank: {
+      bind (el, binding, vnode) {
+        function documentHandler (e) {
+          if (el.contains(e.target)) {
+            return false;
+          }
+          if (binding.expression) {
+            binding.value(e);
+          }
+        }
+        el.__vueClickOutside__ = documentHandler;
+        document.addEventListener('click', documentHandler);
+      },
+      update () { },
+      unbind (el, binding) {
+        document.removeEventListener('click', el.__vueClickOutside__);
+        delete el.__vueClickOutside__;
+      }
+    }
+  },
+  methods: {
+    /* @event 其他选择显示
+     * @param {Object} item —— 除当前选中的其他父子级元素
+     * @param {Number} i —— 当前选中在父级/子级中的索引值
+     * @param {String} type —— 当前选中的类型（父 or 子）*/
+    otherShow (item, i, type) {
+      this.nodeMark(item.tag);
+      this.hoverOption = type + i;
+    },
+    /* @event 其他选中隐藏 */
+    otherHidden () {
+      this.setMark('other', 0, 0, 0, 0);
+      this.hoverOption = '';
+    },
+    /* @event 复制已发布地址 */
+    copyPath () {
+      try {
+        let oInput = document.getElementById('publishPath');
+        oInput.select(); // 选择对象
+        document.execCommand('Copy'); // 执行浏览器复制命令
+        this.$message.success('复制成功！');
+      } catch (e) {
+        this.$message.error('复制错误！');
+      }
+    },
+    /* @event 点击弹出自定义脚本 */
+    importScript (i, row) {
+      this.isVisible = true;
+      this.currentRow = row.subOrder;
+      this.textarea = row.customScript;
+    },
+    /* @event 保存自定义脚本 */
+    confirmSave () {
+      this.tableData.forEach((first, i) => {
+        this.currentRow === first.subOrder ? first.customScript = this.textarea : '';
+        if (first.hasOwnProperty('children')) {
+          first.children.forEach((second, j) => {
+            this.currentRow === second.subOrder ? second.customScript = this.textarea : '';
+            if (second.hasOwnProperty('children')) {
+              second.children.forEach((third, z) => {
+                this.currentRow === third.subOrder ? third.customScript = this.textarea : '';
+              })
+            }
+          })
+        }
+      });
+      this.isVisible = false;
+    },
+    /* @event 关闭自定义脚本 */
+    cancellation () {
+      this.isVisible = false;
+      this.currentRow = '';
+      this.textarea = '';
+    },
+    /* @method 接口系统详情信息 */
+    interfaceDetail () {
+      if (this.$route.query.id) {
+        this.EditorLoad = false;
+        let data = new URLSearchParams();
+        data.append('id', this.$route.query.id);
+        data.append('showFile', 1);//附件信息 0返回
+        this.$axios.post('/process/detail', data, s => {
+          if (s.data.files) {
+            this.files = s.data.files
+            //console.log(this.files)
+          }
+          for (let key in this.detailData) {
+            if (typeof this.detailData[key] !== 'object') {
+              this.detailData[key] = key === 'responseMode' ? String(s.data[key]) : s.data[key];
+            } else {
+              key === 'flowData' && (this.detailData[key] = JSON.parse(s.data[key]));
+            }
+            if (this.detailData.needKey === 1) {
+              this.needKey = true
+            } else {
+              this.needKey = false
+            }
+            if (this.detailData.isHold === 1) {
+              this.holdLogin = true
+            } else {
+              this.holdLogin = false
+            }
+          }
+          for (let c in this.createData) {
+            this.createData[c] = s.data[c];
+          }
+          for (let k in this.status) {
+            this.status[k] = s.data[k];
+          }
+
+          this.bugInfo = {
+            bugDescription: s.data.bugDescription,
+            bugStatus: s.data.bugStatus
+          }
+
+          this.loginLoading = true;
+          let pubBase = this.$axios.downUrl();
+          //pubBase = /http/.test(pubBase) ? pubBase : [window.location.origin, pubBase].join('');
+          pubBase = /http/.test(pubBase) ? pubBase : [window.location.origin, '/'].join('');
+          //this.publishPath = [pubBase, this.baseConfig.FLOW_PUB_BASE_URL, s.data.id].join('');
+          this.publishPath = [pubBase, 'WiseMotion/project/api?id=', s.data.id].join('');
+          this.$nextTick(() => {
+            this.EditorLoad = true;
+          });
+        });
+      } else {
+        this.interfaceEmpty();
+      }
+    },
+    processGainTable (node) {
+      /*获取节点高级获取功能数据*/
+      // 循环添加必要参数
+      node.elementInfos.forEach((first, i, arr) => {
+        // 第一级
+        if (first.hasOwnProperty('children') && first.children.length > 0) {
+          first.children.forEach((second, j) => {
+            // 第二级
+            second.parentIndex = i;
+            if (second.hasOwnProperty('children') && second.children.length > 0) {
+              second.children.forEach((third) => {
+                // 第三级
+                third.parentIndex = j;
+                third.isLast = true;
+              })
+            }
+          });
+        }
+      });
+      this.tableData = node.elementInfos;
+      this.maxOrder = node.maxOrder ? node.maxOrder : 0;
+    },
+    processSnapshot (node) {
+      /*20210607 优化快照资源*/
+      this.snapShotState.targetUrl = node.targetUrl;
+    },
+    /*快照地址改变，拉取一次快照*/
+    processSnapShotchange (node) {
+      let { targetUrl, loaded } = this.snapShotState;
+
+      if (targetUrl !== node.targetUrl) {
+        this.snapShotState.targetUrl = node.targetUrl;
+        loaded = false;
+      }
+      loaded ? (this.loginLoading = true) : (this.iFrameLoad(this.iFrameShow));
+    },
+    /* @method 下拉数据 */
+    interfaceSelect () {
+      this.$axios.post('/interface/selectData', '', s => {
+        this.pathType = s.pathTypes;
+        this.valueName = s.valueNames;
+        this.valueType = s.valueTypes;
+        s.logins.unshift({
+          name: '不需要登录',
+          value: ''
+        });
+        this.logins = s.logins;
+      });
+    },
+    interfaceClients () {
+      /*已注册在线执行客户端资源*/
+      this.$axios.get('/client/getClient', '', s => {
+        this.clients = s.data.map(client => {
+          let { name, value, status, canUse, mac, ip, id, version } = client;
+          let nameStr = id ? [id.slice(0, 5), id.slice(-5)].join('-') : '';
+          name = `[ID_${nameStr}][v${version}]`;
+          value = id;
+          return { name, value, canUse: canUse || status }
+        }).filter(client => !client.canUse) || [
+            {
+              name: '无可用运行资源',
+              value: ''
+            }
+          ];
+      });
+    },
+    /* @method 清除现有数据 */
+    interfaceEmpty () {
+      this.detailData = {
+        id: '',
+        processName: '',
+        isLogin: 0,
+        autoLoginId: '',
+        checkLogin: 0,
+        remark: '',
+        checked: true,
+        isHold: 0,
+        maxTry: 3,
+        period: 12000,
+        flowData: {},
+        sendData: {},
+        responseMode: '1',
+        responseAccess: '',
+        concurrencyCount: '1',
+        sendWay: 0,
+        clientId: ''
+      };
+      this.createData = {
+        createdTime: '',
+        createUser: ''
+      };
+      this.status = {
+        isPublished: 0,
+        isEnable: 0,
+        status: 0
+      };
+      this.tableData = [];
+      this.bugInfo = {
+        bugDescription: '',
+        bugStatus: ''
+      }
+
+      //init model json
+      let data = new URLSearchParams();
+      data.append('type', '1');
+      this.$axios.get('/process/getModel', data, r => {
+        if (this.$route.params.existCode) {
+          this.detailData.flowData = JSON.parse(r.data.find(m => m.name.includes('有验证码')).content)
+        }
+
+        if (!this.$route.params.existCode) {
+          this.detailData.flowData = JSON.parse(r.data.find(m => m.name.includes('无验证码')).content)
+        }
+        this.$nextTick(() => {
+          this.EditorLoad = true;
+        });
+      }, () => {
+        this.$nextTick(() => {
+          this.EditorLoad = true;
+        });
+      })
+    },
+    /* @event 新增一行 */
+    addRow () {
+      console.log(this.maxOrder);
+      this.tableData.push({
+        customScript: '',
+        elementAttributeName: 0,
+        elementPath: '',
+        elementPathType: 0,
+        isCustom: 0,
+        subOrder: this.maxOrder++,
+        valueSaveAsType: 0,
+        valueSaveToKey: ''
+      });
+    },
+    /* @event 删除当前行 */
+    deleteRow (item, scope) {
+      if (!item.hasOwnProperty('parentIndex')) {
+        // 第一级
+        this.tableData.splice(this.tableData.findIndex(first => item.subOrder === first.subOrder), 1);
+      } else {
+        if (!item.hasOwnProperty('isLast')) {
+          // 第二级
+          this.tableData.forEach((first, i) => {
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j, secondArr) => {
+                item.subOrder === second.subOrder ? secondArr.splice(j, 1) : '';
+              })
+            }
+          });
+        } else {
+          // 第三级
+          this.tableData.forEach((first, i) => {
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j) => {
+                if (second.hasOwnProperty('children')) {
+                  second.children.forEach((third, z, thirdArr) => {
+                    item.subOrder === third.subOrder ? thirdArr.splice(z, 1) : '';
+                  })
+                }
+              })
+            }
+          });
+        }
+      }
+    },
+    /* 新增下级 */
+    addChildren (i, item) {
+      console.log(this.maxOrder);
+      let obj = {
+        parentIndex: item.subOrder,
+        customScript: '',
+        elementAttributeName: 0,
+        elementPath: '',
+        elementPathType: 0,
+        isCustom: 0,
+        subOrder: this.maxOrder++,
+        valueSaveAsType: 0,
+        valueSaveToKey: ''
+      };
+      if (item.hasOwnProperty('parentIndex')) {
+        obj.isLast = true;
+      }
+      if (item.hasOwnProperty('children')) {
+        item.children.push(obj)
+      } else {
+        this.$set(item, 'children', [obj]);
+      }
+    },
+    /* @method 自定义接口 */
+    changeCustom (val, row) {
+      console.log(val, row);
+    },
+    blankClick: function (e) {
+      window.selectMask.remove();
+    },
+    /* @event 删除事件 */
+    deleteClick () {
+      this.$confirm('确认删除当前接口？如果有关联流程将受到影响', '提示', {
+        distinguishCancelAndClose: true,
+        confirmButtonText: '删除',
+        cancelButtonText: '取消'
+      }).then(() => {
+        let data = new URLSearchParams();
+        data.append('id', this.detailData.id);
+        this.$axios.post('/process/del', data, s => {
+          this.$message.success('删除成功！');
+          this.$emit('update-list', true);
+          //this.$router.push('/index');
+          history.go(-1);
+        });
+      }).catch(() => { });
+    },
+    /* @event 接口发布 */
+    interfacePublish () {
+      let data = new URLSearchParams();
+      data.append('id', this.$route.query.id || '');
+      data.append('isPublish', this.status.isPublished ? 0 : 1);
+      this.$axios.post('/process/publish', data, s => {
+        this.$message.success(s.message);
+        this.interfaceDetail();
+      });
+    },
+    /* @event 启用禁用修改 */
+    changeEnable (isEnable) {
+      let data = new URLSearchParams();
+      data.append('id', this.$route.query.id);
+      data.append('isEnable', isEnable);
+      this.$axios.post('/process/enable', data, s => {
+        this.interfaceDetail();
+      });
+    },
+    /* @event 接口测试数据清空 */
+    processClearData () {
+      this.interfaceTest()
+    },
+    /* @event 接口测试结果 */
+    processTestRun () {
+      let datarun = new URLSearchParams();
+      let wmRedirectUrlList = [];
+      let wmRedirectUrl = '';
+      for (var p in this.processTestTableData) { //遍历json数组时，这么写p为索引，0,1
+        if (this.processTestTableData[p].isUrl) {
+          (wmRedirectUrl = this.processTestTableData[p].val);
+        } else {
+          wmRedirectUrlList.push(`${this.processTestTableData[p].tit}={${this.processTestTableData[p].tit}}`);
+        }
+        this.processTestTableData[p].val && datarun.append(this.processTestTableData[p].tit, this.processTestTableData[p].val);
+      }
+      // datarun.append('wm_redirect_url', [wmRedirectUrl, `${wmRedirectUrlList.join('&')}`].join(!wmRedirectUrlList.length ? '' : /\?/.test(wmRedirectUrl) ? '&' : '?'));
+      this.TVisible = false;
+      this.testLoading = true;
+      this.interfaceSave(() => {
+        let paths = '/process/test?id=' + this.detailData.id;
+        this.$axios.post(paths, datarun, (res) => {
+          this.jsonString = res.data ? JSON.stringify(res.data, null, 4) : JSON.stringify(res, null, 4);
+          this.jsonVisible = true;
+          this.testLoading = false;
+        }, f => {
+          this.testLoading = false;
+        });
+      });
+    },
+    /* @event 接口测试 */
+    interfaceTest () {
+      this.processTestTableData = [];
+      let startNode = this.detailData.flowData.nodeList.find(node => node.type === 'start');
+      if (startNode) {
+        try {
+          let urlParam = startNode.urlVarName;
+          let variable = startNode.variable;
+          if (urlParam) {
+            this.processTestTableData.push({
+              tit: urlParam,
+              isUrl: 1,
+              val: ''
+            });
+          }
+          if (variable) {
+            Reflect.ownKeys(JSON.parse(variable)).forEach(paramKey => {
+              this.processTestTableData.push({
+                tit: paramKey,
+                val: ''
+              });
+            })
+          }
+        } catch (e) {
+          this.$message.error(e.message)
+          return false
+        }
+      }
+
+      if (this.processTestTableData.length) {
+        this.TVisible = true;
+        return false;
+      }
+
+      this.testLoading = true;
+      this.interfaceSave(() => {
+        /*let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/testrun?id=' + this.detailData.id + '&type=0 ';
+        axios.post(paths).then((res) => {
+          this.jsonString = JSON.stringify(res.data, null, 4);
+          this.jsonVisible = true;
+          this.testLoading = false;
+        });*/
+        /*wisemotion deliver to exeactors*/
+        let paths = '/process/test?id=' + this.detailData.id;
+        this.$axios.get(paths, '', (res) => {
+          this.jsonString = res.data ? JSON.stringify(res.data, null, 4) : JSON.stringify(res, null, 4);
+          this.jsonVisible = true;
+          this.testLoading = false;
+        }, f => {
+          this.testLoading = false;
+        });
+      });
+    },
+    /* @event 保存接口 */
+    interfaceSave (fun) {
+      // console.log(this.detailData);
+      let data = new URLSearchParams();
+      for (let key in this.detailData) {
+        if (typeof this.detailData[key] !== 'object') {
+          data.append(key, this.detailData[key])
+        }
+      }
+      let sendData = ZFSN.filterSendJson(this.detailData.flowData),
+        validData = ZFSN.calcValidteJson(JSON.stringify(sendData));
+
+      data.append('flowData', JSON.stringify(this.detailData.flowData));
+      data.append('sendData', JSON.stringify(sendData));
+      data.append('validData', JSON.stringify(validData));
+
+      console.log(sendData, validData);
+      data.append('type', 1);
+      if (this.canSave) {
+        this.canSave = false;
+        this.$axios.post('/process/save', data, s => {
+          typeof fun === 'object' ? this.$message.success(s.message) : fun();
+          this.$emit('update-list', true);
+          this.$router.push({ name: 'projectLogin', query: { id: s.id } });
+          this.interfaceDetail();
+          this.canSave = true;
+        }, f => {
+          this.canSave = true;
+        });
+      }
+    },
+    /* @event 提交bug点击事件 */
+    bugClick () {
+      this.bugVisible = true;
+    },
+    /* @event 关闭bug点击事件 */
+    closeClick () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      this.$axios.post('/interface/closeBug', data, s => {
+        this.bugInfo.bugStatus = 1;
+      });
+    },
+    /* @method 提交bug */
+    reportBug () {
+      let data = new URLSearchParams();
+      data.append('id', this.detailData.id)
+      data.append('description', this.bugInfo.bugDescription);
+      this.$axios.post('/interface/reportBug', data, s => {
+        this.bugInfo.bugStatus = 0;
+        this.bugVisible = false;
+      });
+    },
+    accessValidate (fun) {
+      this.loginLoading = false;
+      let data = new URLSearchParams();
+      data.append('url', this.detailData.targetUrl)
+      this.$axios.post('/interface/checkIpCount', data, s => {
+        let { data: { isAdd, usableCount, targetUrlCount }, message } = s;
+        isAdd && (typeof fun === 'function' ? fun(this.iFrameShow) : (this.loginLoading = true));
+        this.accessInfo = true;
+        this.usableCount = Number(usableCount) > 100 ? '99+' : usableCount;
+        this.targetUrlCount = Number(targetUrlCount) > 100 ? '99+' : targetUrlCount;
+        this.accessMessage = message;
+        this.accessFail = !isAdd;
+      });
+    },
+    processGetPath (name, item, curAttr) {
+      let targetUrl = this.snapShotState.targetUrl;
+      console.log(name, item, curAttr);
+      this.currentTag = {};
+      this.parentTag = [];
+      this.childTag = [];
+      if (!targetUrl) {
+        this.$message.warning('请先输入目标URL')
+      } else {
+        this.isSelect = name;
+        this.nodeid = name
+        this.currentOrder = item.subOrder;
+        this.curAttr = curAttr;
+        if (item.elementInfos) {
+          this.currentOrder = item.elementInfos[0].subOrder;
+          this.currentOrder && (this.tableData = item.elementInfos);
+        }
+
+        this.pageVisible = true;
+        //客户端直接弹窗
+        if (window._wmSelectElementPath) {
+          return this.iFrameLoad();
+        }
+        !this.snapShotState.loaded && this.iFrameLoad(this.iFrameShow);
+      }
+    },
+    processTableGetPath (index, row) {
+      this.currentOrder = row.subOrder;
+      this.currentTag = {};
+      this.parentTag = [];
+      this.childTag = [];
+      this.pageVisible = true;
+      this.isSelect = this.gainTableBelong;
+      //客户端直接弹窗
+      if (window._wmSelectElementPath) {
+        return this.iFrameLoad();
+      }
+      !this.snapShotState.loaded ? this.iFrameLoad(this.iFrameShow) : this.iFrameShow();
+    },
+    gainTableShow (name, item) {
+      this.isSelect = name;
+      this.gainTableBelong = name;
+      this.processGainTable(item);
+      if (!this.valueType.length) {
+        this.interfaceSelect();
+      }
+      this.gainTableVisible = true;
+    },
+    processClearGetPathTargrt () {
+      this.isSelect = '';
+      this.currentOrder = 0;
+    },
+    /* @method iframe加载 */
+    iFrameLoad (fun) {
+      if (window._wmSelectElementPath) {
+        let that = this;
+        let curnode = that.detailData.flowData.nodeList.find(node => node.id === that.isSelect);
+        let type = curnode ? curnode.type : '';
+        let sessionid = '';
+        let capturetype = 0;
+        that.pageVisible && window._wmSelectElementPath(that.snapShotState.targetUrl, !that.snapShotState.loaded, type, sessionid, capturetype, that.selectClickHandleForClent);
+        that.snapShotState.loaded = true;
+        that.pageVisible = false;
+        return false;
+      }
+      this.loginLoading = false;
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      let paths = this.baseConfig.TAILOR_URL + '/tailor/wisemotion/snapshot';
+      let data = new URLSearchParams();
+      data.append('snapshot_url', this.snapShotState.targetUrl);
+      data.append('snapshot_load_time', this.snapShotState.targetUrlLoadTime);
+      data.append('snapshot_login_data_is_post', 0);
+
+      if (this.snapShotState.autoLoginId) {
+        data.append('snapshot_mode', 3);
+        data.append('snapshot_is_login', 1);
+        data.append('snapshot_login_id', this.snapShotState.autoLoginId);
+      } else {
+        data.append('snapshot_mode', 0);
+        data.append('snapshot_is_login', 0);
+      }
+
+      axios.post(paths, data).then((res) => {
+        iframeHtml.innerHTML = res.data;
+
+        this.$nextTick(() => {
+          if (res.headers['snapshot-html-type']) {
+            this.codeForm = res.data;
+            this.$set(this.codeForm, 'code', '');
+            this.resetImg();
+            this.codeVisible = true;
+            this.snapShotState.loaded = false;
+            return;
+          }
+          this.loginLoading = true;
+          this.snapShotState.loaded = true;
+          typeof fun === 'function' ? fun() : '';
+          if (!this.$route.query.id) {
+            this.iFrameShow();
+          }
+        });
+      });
+    },
+    /* @function iframe 选中事件  */
+    iFrameShow () {
+      if (window._wmSelectElementPath) {
+        return false;
+      }
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+
+      this.parentNodeX = this.utils.getAbsolutelyPosition(iFrame.parentNode).left * scaleRatio;
+      this.parentNodeY = this.utils.getAbsolutelyPosition(iFrame.parentNode).top * scaleRatio;
+
+      this.iFrameRemove();
+
+      iDoc.addEventListener('mousemove', this.mouseEvent, false);
+      iDoc.addEventListener('click', this.preventClick);
+      /*刷新快照，去掉选择提示*/
+      document.querySelector('#snap-area').addEventListener('mouseenter', () => {
+        let style = {
+          'visibility': 'visible'
+        }
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+          this.$refs.mark.style[k] = style[k];
+        }
+      }, false);
+      /*刷新快照，去掉选择提示*/
+      document.querySelector('#snap-area').addEventListener('mouseleave', () => {
+        let style = {
+          'visibility': 'hidden'
+        }
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+          this.$refs.mark.style[k] = style[k];
+        }
+      }, false);
+    },
+    /* @function iframe 事件移除 */
+    iFrameRemove () {
+      let iFrame = document.getElementById('iframe');
+      if (!iFrame) {
+        return false
+      }
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      iDoc.removeEventListener('mousemove', this.mouseEvent, false);
+      iDoc.removeEventListener('click', this.preventClick, false);
+    },
+    /* @function iframe页面绑定鼠标移动事件 */
+    mouseEvent (e) {
+      e.preventDefault();
+      let event = e || window.event,
+        target = event.target;
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+
+      if (this.isSelect || this.isSelect === 0) {
+        this.setMark('mark', eleWidth, eleHeight, offsetX, offsetY);
+        this.setTips(offsetX, offsetY, target, event.clientX, event.clientY);
+      }
+    },
+    /* @function 阻止iframe页面默认点击事件 */
+    preventClick (e) {
+      e.preventDefault();
+    },
+    /* @function 设置遮罩层样式
+    * @param {String} name —— 选中元素对应mark种类 [mark/other]
+    * @param {Number||String} width —— 选中元素的宽度
+    * @param {Number||String} height —— 选中元素的高度
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值 */
+    setMark (name, width, height, left, top) {
+      let style = {
+        'width': width + 'px',
+        'height': height + 'px',
+        'left': left + 'px',
+        'top': top + 'px'
+      }
+      for (let k in style) {
+        this.$refs[name].style[k] = style[k];
+      }
+    },
+    /* @function 设置标签样式
+    * @param {Number||String} left —— 选中元素相对于iframe中的left值
+    * @param {Number||String} top —— 选中元素相对于iframe中的top值
+    * @param {DOM} target —— 选中元素
+    * @param {Number||String} moveX —— 当前鼠标 X 轴上的值
+    * @param {Number||String} moveY —— 当前鼠标 Y 轴上的值 */
+    setTips (left, top, target, moveX, moveY) {
+      this.currentTag = this.nodeParams(target);
+
+      this.parentTag = this.parentNode(target, 3);
+      this.childTag = this.childNode(target, 3);
+
+      this.$nextTick(() => {
+        let tipHalfOffsetWidth = this.$refs.tips.offsetWidth / 2;
+        let tipOffsetHeight = this.$refs.tips.offsetHeight;
+        let boxHeight = this.$refs.box.offsetHeight;
+        let eleWidth = target.offsetWidth * scaleRatio,
+          eleHeight = target.offsetHeight * scaleRatio;
+
+        if (this.maxIFrameWidth === 0) {
+          left += 2;
+        } else {
+          if (moveX - tipHalfOffsetWidth * 2 < 0) {
+            left = 2;
+          } else {
+            if (moveX + tipHalfOffsetWidth * 2 > this.maxIFrameWidth) {
+              left = this.maxIFrameWidth - tipHalfOffsetWidth * 2 - 2;
+            } else {
+              left = moveX - tipHalfOffsetWidth;
+            }
+          }
+        }
+
+        if (tipOffsetHeight > top) {
+          if (eleHeight > tipOffsetHeight * 3) {
+            top += 8;
+          } else {
+            top = top + eleHeight;
+          }
+        } else {
+          top = top - tipOffsetHeight;
+        }
+
+        let style = {
+          'left': left + 'px',
+          'top': top + 'px'
+        };
+        for (let k in style) {
+          this.$refs.tips.style[k] = style[k];
+        }
+      });
+    },
+    /* @function 查询父级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    parentNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.parentElement) {
+          let parentDom = target.parentElement;
+          let parent = this.nodeParams(target.parentElement);
+          arr.unshift(parent);
+          if (parentDom.parentElement) {
+            target = parentDom;
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询子级节点
+    * @param {DOM} target —— 当前选中节点元素
+    * @param {Number} num —— 节点嵌套层数 */
+    childNode (target, num) {
+      let arr = [];
+      for (let i = 0; i < num; i++) {
+        if (target.children && target.children.length > 0 && target.children[0].nodeName.toLowerCase() !== 'script') {
+          let childDom = target.children[0];
+          let child = this.nodeParams(target.children[0]);
+          arr.push(child);
+          if (childDom.children && childDom.children.length > 0 && childDom.children[0].nodeName.toLowerCase() !== 'script') {
+            target = target.children[0];
+          } else {
+            break;
+          }
+        }
+      }
+      return arr;
+    },
+    /* @function 查询节点元素的属性及参数
+    * @param {DOM} target —— 当前需要查询的节点元素 */
+    nodeParams (target) {
+      let tag = {
+        tag: target,
+        tagName: target.nodeName.toLowerCase(),
+        idName: target.id === '' ? '' : '#' + target.id,
+        className: target.className === '' ? '' : '.' + target.className,
+        sPath: this.utils[this.dealPathUtilFunc](target)
+      };
+
+      if (target.getAttribute('href')) {
+        tag.attributeName = 'href';
+        tag.attributeValue = target.getAttribute('href');
+      } else if (target.getAttribute('src')) {
+        tag.attributeName = 'src';
+        tag.attributeValue = target.getAttribute('src');
+      }
+
+      return tag
+    },
+    /* @function hover选中的元素的遮罩
+    * @param {DOM} target —— hover选中的元素  */
+    nodeMark (target) {
+      let offsetX = this.utils.getAbsolutelyPosition(target).left * scaleRatio,
+        offsetY = this.utils.getAbsolutelyPosition(target).top * scaleRatio;
+      let eleWidth = target.offsetWidth * scaleRatio,
+        eleHeight = target.offsetHeight * scaleRatio;
+      this.setMark('other', eleWidth, eleHeight, offsetX, offsetY);
+    },
+    /* @event 确认选中路径（多选框点击）
+    * @param {Boolean} val —— 当前点击多选框对应的boolean值
+    * @param {Object} item —— 当前点击多选框对应的路径对象 */
+    selectClick (val, item) {
+      console.log(this.$refs['flowEditor'])
+      if (val) {
+        this.pageVisible = false;
+        this.tagSelected = false;
+
+        if (this.currentOrder) {
+          this.tableData.forEach((first, i) => {
+            this.currentOrder === first.subOrder ? first.elementPath = item.sPath : '';
+            if (first.hasOwnProperty('children')) {
+              first.children.forEach((second, j) => {
+                this.currentOrder === second.subOrder ? second.elementPath = item.sPath : '';
+                if (second.hasOwnProperty('children')) {
+                  second.children.forEach((third, z) => {
+                    this.currentOrder === third.subOrder ? third.elementPath = item.sPath : '';
+                  })
+                }
+              })
+            }
+          });
+          console.log({ targeNodeId: this.isSelect, payload: this.tableData })
+          /*sync tableData 待完善*/
+          this.$refs.flowEditor.forwardPathHook({ targeNodeId: this.isSelect, payload: { table: this.tableData, maxOrder: this.maxOrder } });
+        } else {
+          this.$refs.flowEditor.forwardPathHook({ targeNodeId: this.isSelect, targetAttr: this.curAttr, payload: item.sPath });
+        }
+
+        //this.tableData[this.isSelect].elementPath = this.sPath;
+        console.log(item.sPath);
+      }
+    },
+    selectClickHandleForClent (path) {
+      console.log(this.$refs['flowEditor']);
+      this.pageVisible = false;
+      this.tagSelected = false;
+
+      if (this.currentOrder) {
+        this.tableData.forEach((first, i) => {
+          this.currentOrder === first.subOrder ? first.elementPath = path : '';
+          if (first.hasOwnProperty('children')) {
+            first.children.forEach((second, j) => {
+              this.currentOrder === second.subOrder ? second.elementPath = path : '';
+              if (second.hasOwnProperty('children')) {
+                second.children.forEach((third, z) => {
+                  this.currentOrder === third.subOrder ? third.elementPath = path : '';
+                })
+              }
+            })
+          }
+        });
+        console.log({ targeNodeId: this.isSelect, payload: this.tableData })
+        /*sync tableData 待完善*/
+        this.$refs.flowEditor.forwardPathHook({ targeNodeId: this.isSelect, payload: { table: this.tableData, maxOrder: this.maxOrder } });
+      } else {
+        this.$refs.flowEditor.forwardPathHook({ targeNodeId: this.isSelect, targetAttr: this.curAttr, payload: path });
+      }
+      //this.tableData[this.isSelect].elementPath = this.sPath;
+      console.log(path);
+      //获取截屏文件流
+      let processId = this.$route.query.id ? this.$route.query.id : ''
+      let type = 0 //0 节点缩略图
+      let nodeId = this.nodeid
+      let file = this.base64ConvertFile(this.arrayBufferToBase64(window._wmGetCaptureImgArrayBuffer(0)), 'img')
+      this.uploadFile(nodeId, type, processId, file)
+      //_wmGetCaptureImgArrayBuffer 1 大图 0 小图
+      if (this.nodeid.indexOf('click') > -1) { //点击登录操作 截登录前
+        type = 1
+        let file = this.base64ConvertFile(this.arrayBufferToBase64(window._wmGetCaptureImgArrayBuffer(1)), 'img')
+        this.uploadFile(nodeId, type, processId, file)
+      } else if (this.nodeid.indexOf('checkLogin') > -1) {
+        type = 2
+        let file = this.base64ConvertFile(this.arrayBufferToBase64(window._wmGetCaptureImgArrayBuffer(1)), 'img')
+        this.uploadFile(nodeId, type, processId, file)
+      }
+    },
+    //BufferToBase64
+    arrayBufferToBase64 (buffer) {
+      var binary = '';
+      var bytes = new Uint8Array(buffer);
+      var len = bytes.byteLength;
+      for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return `data:image/jpeg;base64,${window.btoa(binary)}`;
+    },
+    // 64转file
+    base64ConvertFile (urlData, filename) {
+      if (typeof urlData !== 'string') {
+        this.$toast('urlData不是字符串')
+        return;
+      }
+      var arr = urlData.split(',')
+      var type = arr[0].match(/:(.*?);/)[1]
+      var fileExt = type.split('/')[1]
+      var bstr = atob(arr[1])
+      var n = bstr.length
+      var u8arr = new Uint8Array(n)
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename + '.' + fileExt, {
+        type: type
+      });
+    },
+    uploadFile (nodeId, type, processId, file) {
+      const data = new FormData();
+      data.append('nodeId', nodeId);
+      data.append('type', type);
+      data.append('processId', processId);
+      data.append('file', file);
+      this.$axios.post('/process/uploadFile', data, s => {
+        //this.$message.success(s.message);
+      });
+    },
+    /*  @event 验证码加载完成  */
+    codeLoad () {
+      this.codeLoaded = true;
+    },
+    /*  @event 重置验证码 */
+    resetImg () {
+      if (this.codeLoaded) {
+        this.randomCode = '?time=' + Math.random();
+        this.codeLoaded = false;
+      }
+    },
+    /* @event 保存验证码 */
+    saveCode () {
+      let iFrame = document.getElementById('iframe');
+      let iWindow = iFrame.contentWindow;
+      let iDoc = iWindow.document;
+      let iframeHtml = iDoc.querySelectorAll('html')[0];
+
+      console.log(this.codeForm);
+      this.codeLoading = true;
+      let data = new URLSearchParams();
+      data.append('verifycode', this.codeForm.code);
+      axios.post(this.codeForm.post_url, data).then((res) => {
+        iframeHtml.innerHTML = res.data;
+        this.loginLoading = true;
+        this.snapShotState.loaded = true;
+
+        this.codeLoading = false;
+        this.codeVisible = false;
+      });
+    },
+    gainTableSaveData () {
+      this.gainTableVisible = false;
+      this.gainTableBelong = '';
+      this.processClearGetPathTargrt();
+    },
+    syncFlowData (payload) {
+      this.detailData.flowData = payload;
+    },
+    toggleEidterFullpage () {
+      this.fullPage = !this.fullPage;
+    },
+    // 节点组件使用更新流程详情数据
+    processAttrChange ({ attr, payload }) {
+      this.detailData[attr] = payload;
+    },
+    readApi () {
+      let key
+      this.$axios.get('/user/info', '', s => {
+        console.log(s.data)
+        key = s.data.appkey
+        console.log(this.detailData.needKey)
+        console.log(key)
+        if (this.detailData.needKey === 1) { //
+          this.$router.push({ path: 'api', query: { id: this.detailData.id, appkey: key } });
+        } else {
+          this.$router.push({ path: 'api', query: { id: this.detailData.id } });
+        }
+      })
+    }
+  },
+  mounted () {
+  },
+  //生命周期 - 销毁完成
+  destroyed () {
+    this.iFrameRemove();
+  }
+}
+</script>
